@@ -31,8 +31,8 @@ body{
   position:fixed;
   right:20px;
   bottom:90px;
-  width:390px;
-  height:600px;
+  width:380px;
+  height:580px;
   background:white;
   border:1px solid #ccc;
   border-radius:12px;
@@ -508,6 +508,13 @@ function scoreItem(question, item){
 }
 
 function searchBest(question){
+  if(typeof siteData === "undefined"){
+    throw new Error("siteData is undefined");
+  }
+  if(!Array.isArray(siteData)){
+    throw new Error("siteData is not an array");
+  }
+
   return siteData
     .map(function(item){
       return {
@@ -558,7 +565,14 @@ function ask(){
   if(!q) return;
 
   add(escapeHtml(q), "user");
-  add(buildAnswer(q), "bot");
+
+  try{
+    const answerHtml = buildAnswer(q);
+    add(answerHtml, "bot");
+  }catch(err){
+    console.error(err);
+    add("回答処理でエラーが起きました。<br>site-data.js の書式を確認してください。<br><a href='https://powered.co.jp/contact/' target='_blank' rel='noopener noreferrer'>お問い合わせページはこちら</a>", "bot");
+  }
 
   input.value = "";
   input.focus();
