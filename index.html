@@ -1,430 +1,201 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Powered お問い合わせチャット</title>
-  <style>
-    :root{
-      --primary:#0f766e;
-      --primary-dark:#115e59;
-      --bg:#f5f7fb;
-      --panel:#ffffff;
-      --line:#d7dee8;
-      --text:#1f2937;
-      --muted:#6b7280;
-      --user:#dff4ff;
-      --bot:#ffffff;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お問い合わせチャット</title>
 
-    *{box-sizing:border-box}
+<style>
+body{
+font-family:sans-serif;
+background:#f5f7fb;
+}
 
-    body{
-      margin:0;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:var(--bg);
-      color:var(--text);
-    }
+#chatLauncher{
+position:fixed;
+right:20px;
+bottom:20px;
+width:60px;
+height:60px;
+border-radius:50%;
+border:none;
+background:#0f766e;
+color:white;
+font-size:26px;
+cursor:pointer;
+}
 
-    #chatLauncher{
-      position:fixed;
-      right:20px;
-      bottom:20px;
-      width:60px;
-      height:60px;
-      border:none;
-      border-radius:50%;
-      background:var(--primary);
-      color:#fff;
-      font-size:26px;
-      cursor:pointer;
-      box-shadow:0 12px 28px rgba(0,0,0,.18);
-      z-index:1000;
-    }
+#chatWindow{
+position:fixed;
+right:20px;
+bottom:90px;
+width:360px;
+height:520px;
+background:white;
+border:1px solid #ccc;
+border-radius:12px;
+display:none;
+flex-direction:column;
+overflow:hidden;
+}
 
-    #chatWindow{
-      position:fixed;
-      right:20px;
-      bottom:92px;
-      width:min(380px, calc(100vw - 24px));
-      height:min(620px, calc(100vh - 120px));
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:18px;
-      box-shadow:0 18px 40px rgba(15,23,42,.18);
-      display:none;
-      flex-direction:column;
-      overflow:hidden;
-      z-index:999;
-    }
+#chatHeader{
+background:#0f766e;
+color:white;
+padding:12px;
+font-weight:bold;
+}
 
-    #chatHeader{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:14px 16px;
-      background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-      color:#fff;
-    }
+#messages{
+flex:1;
+overflow:auto;
+padding:10px;
+background:#f8fafc;
+}
 
-    #chatTitle{
-      font-size:16px;
-      font-weight:700;
-      line-height:1.3;
-    }
+.msg{
+margin:8px 0;
+line-height:1.6;
+}
 
-    #chatSub{
-      font-size:12px;
-      opacity:.9;
-      margin-top:2px;
-    }
+.user{
+text-align:right;
+color:#0369a1;
+}
 
-    #closeBtn{
-      border:none;
-      background:rgba(255,255,255,.16);
-      color:#fff;
-      width:34px;
-      height:34px;
-      border-radius:50%;
-      cursor:pointer;
-      font-size:18px;
-    }
+.bot{
+color:#111;
+}
 
-    #messages{
-      flex:1;
-      overflow-y:auto;
-      padding:14px;
-      background:linear-gradient(180deg,#f8fafc 0%, #f3f6fb 100%);
-    }
+#inputArea{
+display:flex;
+border-top:1px solid #ddd;
+}
 
-    .msgWrap{
-      display:flex;
-      margin-bottom:12px;
-    }
+#questionInput{
+flex:1;
+padding:10px;
+border:none;
+font-size:14px;
+}
 
-    .msgWrap.user{
-      justify-content:flex-end;
-    }
+#sendBtn{
+width:70px;
+border:none;
+background:#0f766e;
+color:white;
+cursor:pointer;
+}
 
-    .msg{
-      max-width:86%;
-      padding:11px 13px;
-      border-radius:14px;
-      line-height:1.6;
-      font-size:14px;
-      white-space:pre-wrap;
-      word-break:break-word;
-      box-shadow:0 2px 8px rgba(0,0,0,.04);
-    }
+#quick{
+padding:8px;
+border-top:1px solid #eee;
+}
 
-    .msgWrap.bot .msg{
-      background:var(--bot);
-      border:1px solid #e5e7eb;
-      border-bottom-left-radius:6px;
-    }
-
-    .msgWrap.user .msg{
-      background:var(--user);
-      border:1px solid #bfe7ff;
-      border-bottom-right-radius:6px;
-    }
-
-    .msg strong{
-      display:block;
-      margin-bottom:4px;
-    }
-
-    .msg a{
-      color:var(--primary-dark);
-      font-weight:600;
-      text-decoration:none;
-    }
-
-    .msg a:hover{
-      text-decoration:underline;
-    }
-
-    #quickArea{
-      padding:12px 12px 4px;
-      border-top:1px solid #eef2f7;
-      background:#fbfdff;
-    }
-
-    #quickLabel{
-      font-size:12px;
-      color:var(--muted);
-      margin-bottom:8px;
-    }
-
-    .chips{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-    }
-
-    .chip{
-      border:1px solid #cbd5e1;
-      background:#fff;
-      color:var(--text);
-      border-radius:999px;
-      padding:7px 11px;
-      font-size:13px;
-      cursor:pointer;
-    }
-
-    .chip:hover{
-      background:#f0fdfa;
-      border-color:#99f6e4;
-    }
-
-    #inputArea{
-      display:flex;
-      gap:8px;
-      padding:12px;
-      border-top:1px solid var(--line);
-      background:#fff;
-    }
-
-    #questionInput{
-      flex:1;
-      border:1px solid #cbd5e1;
-      border-radius:12px;
-      padding:12px 14px;
-      font-size:14px;
-      outline:none;
-    }
-
-    #questionInput:focus{
-      border-color:#7dd3fc;
-      box-shadow:0 0 0 3px rgba(125,211,252,.25);
-    }
-
-    #sendBtn{
-      border:none;
-      background:var(--primary);
-      color:#fff;
-      border-radius:12px;
-      padding:0 16px;
-      font-weight:700;
-      cursor:pointer;
-    }
-
-    #sendBtn:hover{
-      background:var(--primary-dark);
-    }
-
-    .smallNote{
-      font-size:11px;
-      color:var(--muted);
-      padding:0 12px 12px;
-      background:#fff;
-    }
-
-    @media (max-width: 480px){
-      #chatWindow{
-        right:12px;
-        bottom:84px;
-        width:calc(100vw - 24px);
-        height:calc(100vh - 108px);
-      }
-      #chatLauncher{
-        right:12px;
-        bottom:12px;
-      }
-    }
-  </style>
+.chip{
+margin:4px;
+padding:6px 10px;
+border:1px solid #ccc;
+border-radius:20px;
+background:white;
+cursor:pointer;
+font-size:12px;
+}
+</style>
 </head>
+
 <body>
-  <button id="chatLauncher" aria-label="チャットを開く" onclick="toggleChat()">💬</button>
 
-  <section id="chatWindow" aria-label="お問い合わせチャット">
-    <div id="chatHeader">
-      <div>
-        <div id="chatTitle">お問い合わせチャット</div>
-        <div id="chatSub">ホームページの内容からご案内します</div>
-      </div>
-      <button id="closeBtn" aria-label="閉じる" onclick="toggleChat()">×</button>
-    </div>
+<button id="chatLauncher" onclick="toggleChat()">💬</button>
 
-    <div id="messages"></div>
+<div id="chatWindow">
 
-    <div id="quickArea">
-      <div id="quickLabel">よくある質問</div>
-      <div class="chips">
-        <button class="chip" onclick="quickAsk('会社概要')">会社概要</button>
-        <button class="chip" onclick="quickAsk('取扱製品')">取扱製品</button>
-        <button class="chip" onclick="quickAsk('製品システム')">製品システム</button>
-        <button class="chip" onclick="quickAsk('所在地')">所在地</button>
-        <button class="chip" onclick="quickAsk('お問い合わせ')">お問い合わせ</button>
-      </div>
-    </div>
+<div id="chatHeader">
+お問い合わせチャット
+</div>
 
-    <div id="inputArea">
-      <input id="questionInput" type="text" placeholder="ご質問を入力してください" />
-      <button id="sendBtn" onclick="ask()">送信</button>
-    </div>
-    <div class="smallNote">回答できない内容はお問い合わせページをご案内します。</div>
-  </section>
+<div id="messages"></div>
 
-  <script src="site-data.js"></script>
-  <script>
-    const synonymMap = {
-      "会社": ["会社", "企業", "メーカー", "概要", "どんな会社", "社名"],
-      "製品": ["製品", "商品", "ラインナップ", "機器", "装置", "ポンプ", "バルブ", "ガン"],
-      "システム": ["システム", "塗布", "充填", "定量吐出", "インキ供給", "設備"],
-      "所在地": ["所在地", "住所", "本社", "どこ", "アクセス", "拠点"],
-      "問い合わせ": ["問い合わせ", "問合せ", "連絡", "電話", "フォーム", "相談"],
-      "営業時間": ["営業時間", "受付時間", "何時", "営業", "電話受付"],
-      "強み": ["強み", "特長", "特徴", "提案力", "技術力"],
-      "業界": ["業界", "用途", "分野", "どんな業界", "使われる"]
-    };
+<div id="quick">
+<button class="chip" onclick="quickAsk('会社概要')">会社概要</button>
+<button class="chip" onclick="quickAsk('取扱製品')">取扱製品</button>
+<button class="chip" onclick="quickAsk('製品システム')">製品システム</button>
+<button class="chip" onclick="quickAsk('所在地')">所在地</button>
+<button class="chip" onclick="quickAsk('お問い合わせ')">お問い合わせ</button>
+</div>
 
-    function toggleChat() {
-      const box = document.getElementById("chatWindow");
-      box.style.display = box.style.display === "flex" ? "none" : "flex";
-      if (box.style.display === "flex") {
-        document.getElementById("questionInput").focus();
-      }
-    }
+<div id="inputArea">
+<input id="questionInput" placeholder="ご質問を入力してください">
+<button id="sendBtn" onclick="ask()">送信</button>
+</div>
 
-    function addMessage(html, sender) {
-      const messages = document.getElementById("messages");
-      const wrap = document.createElement("div");
-      wrap.className = "msgWrap " + sender;
+</div>
 
-      const div = document.createElement("div");
-      div.className = "msg";
-      div.innerHTML = html;
+<script src="site-data.js"></script>
 
-      wrap.appendChild(div);
-      messages.appendChild(wrap);
-      messages.scrollTop = messages.scrollHeight;
-    }
+<script>
 
-    function normalize(text) {
-      return (text || "")
-        .toLowerCase()
-        .replace(/[　\s]+/g, "")
-        .replace(/[？?！!。、,.]/g, "");
-    }
+function toggleChat(){
+const box=document.getElementById("chatWindow");
+box.style.display = box.style.display==="flex" ? "none" : "flex";
+}
 
-    function tokenize(question) {
-      const original = question.trim();
-      const baseTokens = original.split(/[ 　]+/).filter(Boolean);
-      const expanded = new Set(baseTokens);
+function add(text,type){
+const m=document.getElementById("messages");
+const div=document.createElement("div");
+div.className="msg "+type;
+div.innerHTML=text;
+m.appendChild(div);
+m.scrollTop=m.scrollHeight;
+}
 
-      Object.entries(synonymMap).forEach(([key, values]) => {
-        if (values.some(v => original.includes(v))) {
-          expanded.add(key);
-          values.forEach(v => expanded.add(v));
-        }
-      });
+function ask(){
 
-      return Array.from(expanded);
-    }
+const input=document.getElementById("questionInput");
+const q=input.value.trim();
 
-    function scoreItem(question, item) {
-      const qNorm = normalize(question);
-      const itemText = `${item.title} ${item.content}`;
-      const itemNorm = normalize(itemText);
-      const tokens = tokenize(question);
+if(!q)return;
 
-      let score = 0;
+add(q,"user");
 
-      if (itemNorm.includes(qNorm) && qNorm.length >= 2) score += 12;
-      if (normalize(item.title).includes(qNorm) && qNorm.length >= 2) score += 14;
+let found=null;
 
-      tokens.forEach(token => {
-        const t = normalize(token);
-        if (!t || t.length < 2) return;
+for(let i=0;i<siteData.length;i++){
+if(q.includes(siteData[i].title.replace("システム",""))){
+found=siteData[i];
+break;
+}
+}
 
-        if (normalize(item.title).includes(t)) score += 7;
-        if (itemNorm.includes(t)) score += 4;
-      });
+if(found){
 
-      const patterns = [
-        { keys: ["電話", "問い合わせ"], title: "お問い合わせ" },
-        { keys: ["受付", "時間"], title: "お問い合わせ" },
-        { keys: ["住所"], title: "所在地" },
-        { keys: ["本社"], title: "所在地" },
-        { keys: ["会社"], title: "会社概要" },
-        { keys: ["製品"], title: "製品ラインナップ" },
-        { keys: ["塗布"], title: "塗布システム" },
-        { keys: ["充填"], title: "充填システム" }
-      ];
+let html="<strong>"+found.title+"</strong><br>";
+html+=found.content+"<br><br>";
+html+="<a href='"+found.url+"' target='_blank'>詳しくはこちら</a>";
 
-      patterns.forEach(rule => {
-        if (rule.keys.every(k => question.includes(k)) && item.title.includes(rule.title)) {
-          score += 10;
-        }
-      });
+add(html,"bot");
 
-      return score;
-    }
+}else{
 
-    function searchAnswers(question, limit = 3) {
-      return siteData
-        .map(item => ({ item, score: scoreItem(question, item) }))
-        .filter(x => x.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
-    }
+add("該当情報が見つかりませんでした。<br><a href='https://powered.co.jp/contact/' target='_blank'>お問い合わせページはこちら</a>","bot");
 
-    function buildAnswer(question) {
-      const results = searchAnswers(question, 3);
+}
 
-      if (!results.length) {
-        return `
-          <strong>該当情報が見つかりませんでした</strong>
-          ホームページ内で一致する情報を見つけられませんでした。<br>
-          <a href="https://powered.co.jp/contact/" target="_blank" rel="noopener noreferrer">お問い合わせページはこちら</a>
-        `;
-      }
+input.value="";
+}
 
-      const top = results[0].item;
-      let html = `
-        <strong>${top.title}</strong>
-        ${top.content}<br><br>
-        <a href="${top.url}" target="_blank" rel="noopener noreferrer">詳しくはこちら</a>
-      `;
+function quickAsk(text){
+document.getElementById("questionInput").value=text;
+ask();
+}
 
-      if (results.length > 1) {
-        html += `<br><br><span style="color:#6b7280;font-size:12px;">関連情報</span><br>`;
-        results.slice(1).forEach(({ item }) => {
-          html += `・<a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.title}</a><br>`;
-        });
-      }
+document.getElementById("questionInput").addEventListener("keydown",function(e){
+if(e.key==="Enter"){ask();}
+});
 
-      return html;
-    }
+add("こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。会社概要、製品、所在地などを質問してください。","bot");
 
-    function ask() {
-      const input = document.getElementById("questionInput");
-      const question = input.value.trim();
-      if (!question) return;
+</script>
 
-      addMessage(question, "user");
-
-      const answer = buildAnswer(question);
-      window.setTimeout(() => addMessage(answer, "bot"), 250);
-
-      input.value = "";
-      input.focus();
-    }
-
-    function quickAsk(text) {
-      document.getElementById("questionInput").value = text;
-      ask();
-    }
-
-    document.getElementById("questionInput").addEventListener("keydown", function(event) {
-      if (event.key === "Enter") ask();
-    });
-
-    addMessage(
-      "こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。<br>会社概要、製品、システム、所在地、お問い合わせなどを質問してください。",
-      "bot"
-    );
-  </script>
 </body>
 </html>
