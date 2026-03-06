@@ -1,4 +1,4 @@
-name: Update site-data.js from website
+name: Update site-data.js
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -19,12 +19,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
-
-      - name: Generate site-data.js
+      - name: Run update script
         run: python scripts/update_site_data.py
 
       - name: Commit and push if changed
@@ -33,5 +28,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add site-data.js
           git diff --cached --quiet && exit 0
-          git commit -m "Auto-update site-data.js from website"
+          git commit -m "Auto-update site-data.js"
           git push
