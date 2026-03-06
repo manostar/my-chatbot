@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Chatbot</title>
+<style>
+body{font-family:sans-serif}
+#chat{border:1px solid #ccc;height:400px;overflow:auto;padding:10px}
+</style>
+</head>
+
+<body>
+
+<h2>お問い合わせチャット</h2>
+
+<div id="chat"></div>
+
+<input id="q">
+<button onclick="ask()">送信</button>
+
+<script>
+
+function add(text){
+let d=document.createElement("div")
+d.innerText=text
+chat.appendChild(d)
+}
+
+function ask(){
+
+let q=document.getElementById("q").value
+
+add("あなた："+q)
+
+let a="お問い合わせはフォームからお願いします"
+
+if(q.includes("営業時間"))
+a="営業時間は9:00〜17:00です"
+
+if(q.includes("住所"))
+a="東京都〇〇区です"
+
+setTimeout(()=>{
+add("BOT："+a)
+},300)
+
+}
+
+</script>
+
+</body>
+</html>
