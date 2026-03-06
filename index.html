@@ -4,198 +4,325 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>お問い合わせチャット</title>
-
 <style>
 body{
-font-family:sans-serif;
-background:#f5f7fb;
+  font-family:sans-serif;
+  background:#f5f7fb;
 }
-
 #chatLauncher{
-position:fixed;
-right:20px;
-bottom:20px;
-width:60px;
-height:60px;
-border-radius:50%;
-border:none;
-background:#0f766e;
-color:white;
-font-size:26px;
-cursor:pointer;
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  border:none;
+  background:#0f766e;
+  color:white;
+  font-size:26px;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(0,0,0,0.15);
 }
-
 #chatWindow{
-position:fixed;
-right:20px;
-bottom:90px;
-width:360px;
-height:520px;
-background:white;
-border:1px solid #ccc;
-border-radius:12px;
-display:none;
-flex-direction:column;
-overflow:hidden;
+  position:fixed;
+  right:20px;
+  bottom:90px;
+  width:360px;
+  height:540px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:12px;
+  display:none;
+  flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 12px 24px rgba(0,0,0,0.12);
 }
-
 #chatHeader{
-background:#0f766e;
-color:white;
-padding:12px;
-font-weight:bold;
+  background:#0f766e;
+  color:white;
+  padding:12px;
+  font-weight:bold;
 }
-
+#chatSub{
+  font-size:12px;
+  opacity:0.9;
+  margin-top:4px;
+}
 #messages{
-flex:1;
-overflow:auto;
-padding:10px;
-background:#f8fafc;
+  flex:1;
+  overflow:auto;
+  padding:10px;
+  background:#f8fafc;
 }
-
 .msg{
-margin:8px 0;
-line-height:1.6;
+  margin:8px 0;
+  line-height:1.6;
+  padding:8px 10px;
+  border-radius:10px;
+  max-width:90%;
+  word-break:break-word;
 }
-
 .user{
-text-align:right;
-color:#0369a1;
+  margin-left:auto;
+  background:#dbeafe;
+  color:#0f172a;
 }
-
 .bot{
-color:#111;
+  background:white;
+  border:1px solid #e5e7eb;
+  color:#111827;
 }
-
-#inputArea{
-display:flex;
-border-top:1px solid #ddd;
-}
-
-#questionInput{
-flex:1;
-padding:10px;
-border:none;
-font-size:14px;
-}
-
-#sendBtn{
-width:70px;
-border:none;
-background:#0f766e;
-color:white;
-cursor:pointer;
-}
-
 #quick{
-padding:8px;
-border-top:1px solid #eee;
+  padding:8px;
+  border-top:1px solid #eee;
+  background:#fff;
 }
-
+.quickLabel{
+  font-size:12px;
+  color:#6b7280;
+  margin-bottom:6px;
+}
 .chip{
-margin:4px;
-padding:6px 10px;
-border:1px solid #ccc;
-border-radius:20px;
-background:white;
-cursor:pointer;
-font-size:12px;
+  margin:4px 4px 0 0;
+  padding:6px 10px;
+  border:1px solid #ccc;
+  border-radius:20px;
+  background:white;
+  cursor:pointer;
+  font-size:12px;
+}
+.chip:hover{
+  background:#f0fdfa;
+}
+#inputArea{
+  display:flex;
+  border-top:1px solid #ddd;
+  background:#fff;
+  padding:8px;
+  gap:8px;
+}
+#questionInput{
+  flex:1;
+  padding:10px 12px;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  font-size:14px;
+}
+#sendBtn{
+  width:70px;
+  border:none;
+  background:#0f766e;
+  color:white;
+  cursor:pointer;
+  border-radius:10px;
+}
+.smallNote{
+  padding:0 10px 10px;
+  font-size:11px;
+  color:#6b7280;
+  background:#fff;
+}
+a{
+  color:#0f766e;
+  font-weight:bold;
+  text-decoration:none;
+}
+a:hover{
+  text-decoration:underline;
 }
 </style>
 </head>
-
 <body>
 
 <button id="chatLauncher" onclick="toggleChat()">💬</button>
 
 <div id="chatWindow">
 
-<div id="chatHeader">
-お問い合わせチャット
-</div>
+  <div id="chatHeader">
+    お問い合わせチャット
+    <div id="chatSub">ホームページの内容からご案内します</div>
+  </div>
 
-<div id="messages"></div>
+  <div id="messages"></div>
 
-<div id="quick">
-<button class="chip" onclick="quickAsk('会社概要')">会社概要</button>
-<button class="chip" onclick="quickAsk('取扱製品')">取扱製品</button>
-<button class="chip" onclick="quickAsk('製品システム')">製品システム</button>
-<button class="chip" onclick="quickAsk('所在地')">所在地</button>
-<button class="chip" onclick="quickAsk('お問い合わせ')">お問い合わせ</button>
-</div>
+  <div id="quick">
+    <div class="quickLabel">よくある質問</div>
+    <button class="chip" onclick="quickAsk('会社概要')">会社概要</button>
+    <button class="chip" onclick="quickAsk('取扱製品')">取扱製品</button>
+    <button class="chip" onclick="quickAsk('製品システム')">製品システム</button>
+    <button class="chip" onclick="quickAsk('所在地')">所在地</button>
+    <button class="chip" onclick="quickAsk('お問い合わせ')">お問い合わせ</button>
+  </div>
 
-<div id="inputArea">
-<input id="questionInput" placeholder="ご質問を入力してください">
-<button id="sendBtn" onclick="ask()">送信</button>
-</div>
+  <div id="inputArea">
+    <input id="questionInput" placeholder="ご質問を入力してください">
+    <button id="sendBtn" onclick="ask()">送信</button>
+  </div>
+
+  <div class="smallNote">自然文でも検索できるようにしてあります。回答できない内容はお問い合わせページをご案内します。</div>
 
 </div>
 
 <script src="site-data.js"></script>
 
 <script>
+const synonymGroups = [
+  ["会社", "企業", "メーカー", "社名", "概要", "どんな会社"],
+  ["製品", "商品", "ラインナップ", "機器", "装置"],
+  ["システム", "設備", "塗布", "充填", "定量吐出", "供給"],
+  ["所在地", "住所", "本社", "アクセス", "場所", "どこ"],
+  ["問い合わせ", "問合せ", "連絡", "電話", "相談", "フォーム"],
+  ["受付時間", "営業時間", "何時", "営業", "受付"],
+  ["ポンプ", "圧送", "レシプロ", "ドラム", "ペール"],
+  ["バルブ", "ガン", "吐出"],
+  ["強み", "特長", "特徴", "提案力", "技術力"],
+  ["業界", "用途", "分野", "使われる"]
+];
 
 function toggleChat(){
-const box=document.getElementById("chatWindow");
-box.style.display = box.style.display==="flex" ? "none" : "flex";
+  const box=document.getElementById("chatWindow");
+  box.style.display = box.style.display==="flex" ? "none" : "flex";
+  if(box.style.display==="flex"){
+    document.getElementById("questionInput").focus();
+  }
 }
 
 function add(text,type){
-const m=document.getElementById("messages");
-const div=document.createElement("div");
-div.className="msg "+type;
-div.innerHTML=text;
-m.appendChild(div);
-m.scrollTop=m.scrollHeight;
+  const m=document.getElementById("messages");
+  const div=document.createElement("div");
+  div.className="msg "+type;
+  div.innerHTML=text;
+  m.appendChild(div);
+  m.scrollTop=m.scrollHeight;
+}
+
+function normalize(text){
+  return (text || "")
+    .toLowerCase()
+    .replace(/[\s　]+/g,"")
+    .replace(/[?？!！。、,.]/g,"");
+}
+
+function expandQuery(text){
+  const query = text.trim();
+  const tokens = new Set(query.split(/[\s　]+/).filter(Boolean));
+
+  synonymGroups.forEach(group=>{
+    const hit = group.some(word => query.includes(word));
+    if(hit){
+      group.forEach(word => tokens.add(word));
+    }
+  });
+
+  // 文字単位より、2文字以上の部分語も追加
+  for(let i=0;i<query.length;i++){
+    for(let j=i+2;j<=Math.min(query.length, i+6);j++){
+      const part = query.slice(i,j).trim();
+      if(part.length >= 2) tokens.add(part);
+    }
+  }
+
+  return Array.from(tokens);
+}
+
+function scoreItem(question, item){
+  const q = normalize(question);
+  const text = item.title + " " + item.content;
+  const ntext = normalize(text);
+  const title = normalize(item.title);
+  const tokens = expandQuery(question);
+
+  let score = 0;
+
+  if(q && title.includes(q)) score += 30;
+  if(q && ntext.includes(q)) score += 20;
+
+  tokens.forEach(token=>{
+    const t = normalize(token);
+    if(t.length < 2) return;
+
+    if(title.includes(t)) score += 12;
+    if(ntext.includes(t)) score += 6;
+  });
+
+  // 質問パターンによる加点
+  if(question.includes("電話") || question.includes("連絡")){
+    if(item.title.includes("お問い合わせ")) score += 18;
+  }
+
+  if(question.includes("住所") || question.includes("本社") || question.includes("どこ")){
+    if(item.title.includes("所在地")) score += 18;
+  }
+
+  if(question.includes("会社") || question.includes("企業")){
+    if(item.title.includes("会社概要")) score += 18;
+  }
+
+  if(question.includes("製品") || question.includes("商品") || question.includes("ポンプ")){
+    if(item.title.includes("製品") || item.title.includes("ポンプ")) score += 14;
+  }
+
+  if(question.includes("塗布") || question.includes("充填")){
+    if(item.title.includes("システム")) score += 14;
+  }
+
+  return score;
+}
+
+function searchBest(question){
+  const results = siteData
+    .map(item => ({ item, score: scoreItem(question, item) }))
+    .filter(row => row.score > 0)
+    .sort((a,b) => b.score - a.score);
+
+  return results.slice(0,3);
+}
+
+function buildAnswer(question){
+  const results = searchBest(question);
+
+  if(results.length === 0){
+    return "該当情報が見つかりませんでした。<br><a href='https://powered.co.jp/contact/' target='_blank' rel='noopener noreferrer'>お問い合わせページはこちら</a>";
+  }
+
+  const top = results[0].item;
+  let html = "<strong>" + top.title + "</strong><br>";
+  html += top.content + "<br><br>";
+  html += "<a href='" + top.url + "' target='_blank' rel='noopener noreferrer'>詳しくはこちら</a>";
+
+  if(results.length > 1){
+    html += "<br><br><span style='font-size:12px;color:#6b7280;'>関連情報</span><br>";
+    for(let i=1;i<results.length;i++){
+      html += "・<a href='" + results[i].item.url + "' target='_blank' rel='noopener noreferrer'>" + results[i].item.title + "</a><br>";
+    }
+  }
+
+  return html;
 }
 
 function ask(){
+  const input=document.getElementById("questionInput");
+  const q=input.value.trim();
+  if(!q)return;
 
-const input=document.getElementById("questionInput");
-const q=input.value.trim();
-
-if(!q)return;
-
-add(q,"user");
-
-let found=null;
-
-for(let i=0;i<siteData.length;i++){
-if(q.includes(siteData[i].title.replace("システム",""))){
-found=siteData[i];
-break;
-}
-}
-
-if(found){
-
-let html="<strong>"+found.title+"</strong><br>";
-html+=found.content+"<br><br>";
-html+="<a href='"+found.url+"' target='_blank'>詳しくはこちら</a>";
-
-add(html,"bot");
-
-}else{
-
-add("該当情報が見つかりませんでした。<br><a href='https://powered.co.jp/contact/' target='_blank'>お問い合わせページはこちら</a>","bot");
-
-}
-
-input.value="";
+  add(q,"user");
+  add(buildAnswer(q),"bot");
+  input.value="";
+  input.focus();
 }
 
 function quickAsk(text){
-document.getElementById("questionInput").value=text;
-ask();
+  document.getElementById("questionInput").value=text;
+  ask();
 }
 
 document.getElementById("questionInput").addEventListener("keydown",function(e){
-if(e.key==="Enter"){ask();}
+  if(e.key==="Enter"){ask();}
 });
 
-add("こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。会社概要、製品、所在地などを質問してください。","bot");
-
+add("こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。自然な文章でも質問できます。たとえば「シリコーンの充填設備はありますか？」のように入力してください。","bot");
 </script>
 
 </body>
 </html>
+
