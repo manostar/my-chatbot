@@ -3,27 +3,89 @@
 <head>
 <meta charset="UTF-8">
 <title>Chatbot</title>
+
 <style>
-body{font-family:sans-serif}
-#chat{border:1px solid #ccc;height:400px;overflow:auto;padding:10px}
+
+body{
+font-family:sans-serif
+}
+
+#chatButton{
+position:fixed;
+right:20px;
+bottom:20px;
+background:#0078ff;
+color:white;
+padding:15px;
+border-radius:50%;
+cursor:pointer;
+font-size:20px
+}
+
+#chatBox{
+position:fixed;
+right:20px;
+bottom:80px;
+width:300px;
+height:400px;
+background:white;
+border:1px solid #ccc;
+display:none;
+flex-direction:column
+}
+
+#messages{
+flex:1;
+overflow:auto;
+padding:10px
+}
+
+input{
+width:70%
+}
+
 </style>
+
 </head>
 
 <body>
 
-<h2>お問い合わせチャット</h2>
+<div id="chatButton" onclick="toggleChat()">💬</div>
 
-<div id="chat"></div>
+<div id="chatBox">
 
+<div id="messages"></div>
+
+<div>
 <input id="q">
 <button onclick="ask()">送信</button>
+</div>
+
+</div>
 
 <script>
 
+function toggleChat(){
+
+let box=document.getElementById("chatBox")
+
+if(box.style.display=="flex")
+box.style.display="none"
+else
+box.style.display="flex"
+
+}
+
 function add(text){
-let d=document.createElement("div")
-d.innerText=text
-chat.appendChild(d)
+
+let div=document.createElement("div")
+
+div.innerText=text
+
+messages.appendChild(div)
+
+messages.scrollTop=messages.scrollHeight
+
 }
 
 function ask(){
@@ -32,13 +94,16 @@ let q=document.getElementById("q").value
 
 add("あなた："+q)
 
-let a="お問い合わせはフォームからお願いします"
+let a="お問い合わせフォームをご利用ください"
 
 if(q.includes("営業時間"))
 a="営業時間は9:00〜17:00です"
 
 if(q.includes("住所"))
 a="東京都〇〇区です"
+
+if(q.includes("製品"))
+a="製品情報はこちらをご覧ください"
 
 setTimeout(()=>{
 add("BOT："+a)
