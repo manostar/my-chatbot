@@ -2,223 +2,152 @@
 from __future__ import annotations
 
 import json
-import re
-from collections import deque
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
 
-import requests
-from bs4 import BeautifulSoup
-
-BASE_URL = "https://powered.co.jp/"
-ALLOWED_DOMAIN = "powered.co.jp"
-SEED_URLS = [
-    "https://powered.co.jp/",
-    "https://powered.co.jp/company/",
-    "https://powered.co.jp/system/",
-    "https://powered.co.jp/product/",
-    "https://powered.co.jp/contact/",
-]
-MAX_PAGES = 60
-MAX_RECORDS = 220
-MIN_TEXT_LEN = 18
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; PoweredCrawler/1.0; +https://github.com/)",
-    "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
-}
-
-ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "site-data.js"
-
-
-def normalize_space(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def same_domain(url: str) -> bool:
-    try:
-        return urlparse(url).netloc.endswith(ALLOWED_DOMAIN)
-    except Exception:
-        return False
-
-
-def clean_url(url: str) -> str:
-    p = urlparse(url)
-    path = p.path or "/"
-    return f"{p.scheme}://{p.netloc}{path}"
-
-
-def extract_links(soup: BeautifulSoup, current_url: str) -> list[str]:
-    links = []
-    for a in soup.find_all("a", href=True):
-        href = a.get("href", "").strip()
-        if not href or href.startswith("#") or href.startswith("mailto:") or href.startswith("tel:"):
-            continue
-        full = urljoin(current_url, href)
-        full = clean_url(full)
-        if same_domain(full):
-            links.append(full)
-
-    seen = set()
-    unique = []
-    for link in links:
-        if link not in seen:
-            seen.add(link)
-            unique.append(link)
-    return unique
-
-
-def extract_main_node(soup: BeautifulSoup):
-    for selector in ["main", "article", ".post-content", ".entry-content", ".content", "#content"]:
-        node = soup.select_one(selector)
-        if node:
-            return node
-    return soup.body or soup
-
-
-def keyword_candidates(text: str, limit: int = 12) -> list[str]:
-    terms = re.findall(r"[一-龥ぁ-んァ-ヶA-Za-z0-9\-\+]{2,20}", text)
-    stop = {
-        "です","ます","した","する","いる","ある","こと","ため","および","または","など",
-        "当社","日本","株式会社","ページ","こちら","お問い合わせ","製品","システム","会社",
-        "powered","https","co","jp"
+records = [
+    {
+        "title": "会社概要",
+        "url": "https://powered.co.jp/company/",
+        "content": "日本パワード工業株式会社は、高粘度流体の移送・塗布・充填に関する機器やシステムを手がけるメーカーです。代表者は代表取締役社長 髙田芳宏、資本金は35,000,000円、設立は1966年7月です。",
+        "keywords": ["会社概要", "代表者", "社長", "資本金", "設立", "メーカー", "高粘度"]
+    },
+    {
+        "title": "事業内容",
+        "url": "https://powered.co.jp/",
+        "content": "日本パワード工業は、高粘度流体の移送・塗布・充填に向けて、ポンプ・ノズル等の最適なトータルシステムを提案しています。標準品だけでなく、顧客ニーズに合わせたアレンジや、自動化ライン向けのフルオーダー品にも対応しています。アフターサービスは、製品を熟知したサービスエンジニアが素早く対応します。",
+        "keywords": ["事業内容", "何をしている会社", "高粘度流体", "移送", "塗布", "充填", "ポンプ", "ノズル", "トータルシステム", "フルオーダー", "アフターサービス"]
+    },
+    {
+        "title": "私たちの強み",
+        "url": "https://powered.co.jp/",
+        "content": "日本パワード工業の強みは、トータルシステムをアレンジできる提案力、フルオーダー品も製作できる技術力、製品を熟知したエンジニアを生み出す育成力、そして先端技術に果敢に挑むチャレンジ精神です。",
+        "keywords": ["強み", "特長", "特徴", "提案力", "技術力", "育成力", "チャレンジ精神", "先端技術"]
+    },
+    {
+        "title": "対応業界",
+        "url": "https://powered.co.jp/",
+        "content": "日本パワード工業の製品は、自動車、医薬品、印刷関係、住宅設備、電子部品、精密機械、文具、光学機器、材料・素材など、さまざまな分野・業界で使用されています。",
+        "keywords": ["対応業界", "業界", "用途", "分野", "自動車", "医薬品", "印刷", "住宅設備", "電子部品", "精密機械", "文具", "光学機器", "材料", "素材"]
+    },
+    {
+        "title": "製品システム",
+        "url": "https://powered.co.jp/system/",
+        "content": "製品システムは、塗布、充填、2液・3液の定量吐出、インキ供給設備に対応しています。高粘度材料の点塗布、線引き塗布、スプレー塗布や、各種充填機、LIM・LSR向け定量機、新聞用輪転機向けインキ供給設備などを展開しています。",
+        "keywords": ["製品システム", "システム", "設備", "塗布", "充填", "2液", "3液", "定量吐出", "インキ供給", "LSR", "LIM"]
+    },
+    {
+        "title": "塗布システム",
+        "url": "https://powered.co.jp/system/",
+        "content": "塗布システムでは、高粘度材料の点塗布、線引き塗布、スプレー塗布に対応しています。グリス、シール剤、接着剤、FIPG、放熱コンパウンドなどの材料に対応し、ロボットを使用したワークへの自動塗布にも対応できます。",
+        "keywords": ["塗布", "塗布システム", "点塗布", "線引き塗布", "スプレー塗布", "グリス", "シール剤", "接着剤", "FIPG", "放熱コンパウンド", "自動塗布", "ロボット"]
+    },
+    {
+        "title": "充填システム",
+        "url": "https://powered.co.jp/system/",
+        "content": "充填システムでは、シリコーンオイル真空注入機、シリンジ充填機、ペール缶・ドラム缶充填機、ブレーキフルード真空注入システムなどに対応しています。容器への充填から閉栓、搬送、検査までの自動化にも対応できます。",
+        "keywords": ["充填", "充填システム", "シリコーンオイル", "真空注入", "シリンジ", "ペール缶", "ドラム缶", "ブレーキフルード", "閉栓", "搬送", "検査", "自動化"]
+    },
+    {
+        "title": "2液・3液の定量吐出",
+        "url": "https://powered.co.jp/system/",
+        "content": "2液・3液の定量吐出では、LSR定量機、LIM用成形機への対応、ピグメント用ポンプなどを扱っています。LSR定量機は高粘度にも対応し、ラボ用から量産用まで少量から大容量の完全オーダーメイド定量機を製作できます。",
+        "keywords": ["2液", "3液", "定量吐出", "LSR", "LIM", "液状シリコーンゴム", "熱硬化性液状材料", "ピグメント", "顔料", "高粘度", "オーダーメイド"]
+    },
+    {
+        "title": "インキ供給設備",
+        "url": "https://powered.co.jp/system/",
+        "content": "インキ供給設備では、オフセットインキ供給システム、廃液の真空自動回収装置、純水製造装置を提供しています。新聞用輪転機へのインキ供給、洗浄廃液の自動回収、逆浸透方式による純水製造に対応しています。",
+        "keywords": ["インキ", "インキ供給", "オフセット", "輪転機", "新聞", "廃液", "真空自動回収", "純水", "純水製造装置", "逆浸透", "RO"]
+    },
+    {
+        "title": "製品ラインナップ",
+        "url": "https://powered.co.jp/product/",
+        "content": "製品ラインナップは、ポンプ、ガン・バルブ、フィルタ・減圧弁です。高粘度材料向けの圧送ポンプ、手動・自動の吐出ガンやバルブ、関連機器を展開しています。",
+        "keywords": ["製品ラインナップ", "製品", "商品", "ポンプ", "ガン", "バルブ", "フィルタ", "減圧弁", "高粘度", "圧送"]
+    },
+    {
+        "title": "ポンプカテゴリ",
+        "url": "https://powered.co.jp/product/",
+        "content": "ポンプ製品には、ミニエックスシリーズ、カートリッジ用高圧圧送ポンプ、ペールポンプ、ドラムポンプなどがあります。高粘度材料を容器から直接圧送する用途に向いています。",
+        "keywords": ["ポンプ", "圧送ポンプ", "ミニエックス", "カートリッジ", "ペールポンプ", "ドラムポンプ", "高圧圧送", "高粘度材料"]
+    },
+    {
+        "title": "ミニエックスポンプ",
+        "url": "https://powered.co.jp/product/",
+        "content": "ミニエックスは、エアー駆動式レシプロポンプです。小型でも高圧圧送が可能で、1kg缶から18kg缶、カートリッジ、特殊容器にも対応します。グリース、シール剤、接着剤、液状ガスケット、放熱コンパウンドなどの材料に対応できます。",
+        "keywords": ["ミニエックス", "MiniEx", "レシプロポンプ", "エアー駆動", "高圧圧送", "1kg缶", "18kg缶", "カートリッジ", "特殊容器", "グリース", "シール剤", "接着剤"]
+    },
+    {
+        "title": "カートリッジ用高圧圧送ポンプ",
+        "url": "https://powered.co.jp/product/",
+        "content": "カートリッジ用高圧圧送ポンプとして、CX-600-III カートリッジ用ミニエックス、CX-602-II 2連カートリッジ用ミニエックスが掲載されています。",
+        "keywords": ["カートリッジ", "高圧圧送", "CX-600-III", "CX-602-II", "2連カートリッジ", "ミニエックス"]
+    },
+    {
+        "title": "ペールポンプ",
+        "url": "https://powered.co.jp/product/",
+        "content": "ペールポンプは、ペール缶用の高圧圧送ポンプです。材料を最後まで使い切るフラットフォロープレートを採用し、グリース、シール剤、接着剤、液状ガスケット、放熱コンパウンドなどに対応します。",
+        "keywords": ["ペールポンプ", "ペール缶", "高圧圧送", "フラットフォロープレート", "グリース", "接着剤", "放熱コンパウンド"]
+    },
+    {
+        "title": "ドラムポンプ",
+        "url": "https://powered.co.jp/product/",
+        "content": "ドラムポンプは、ドラム缶用の高圧圧送ポンプです。高粘度材料の安定供給に向く製品です。",
+        "keywords": ["ドラムポンプ", "ドラム缶", "高圧圧送", "高粘度材料"]
+    },
+    {
+        "title": "ガン・バルブ",
+        "url": "https://powered.co.jp/product/",
+        "content": "ガン・バルブ製品には、手動ガン、フローガン、ペンシルガン、自動ガン、定量バルブなどがあります。高粘度材料の塗布、吐出、定量供給に使われる機器です。",
+        "keywords": ["ガン", "バルブ", "手動ガン", "フローガン", "ペンシルガン", "自動ガン", "定量バルブ", "吐出", "塗布", "ディスペンサー"]
+    },
+    {
+        "title": "営業品目",
+        "url": "https://powered.co.jp/company/",
+        "content": "営業品目には、ピストンバルブ、パワードフィルター、高圧フィルター、フローガン、ペンシルガン、自動ガン、定量バルブ、各種ディスペンサー、高圧ダイヤフラムポンプ、高粘度材料圧送用ポンプ、高粘度材料供給装置、全自動インキ循環供給装置などがあります。",
+        "keywords": ["営業品目", "ピストンバルブ", "パワードフィルター", "高圧フィルター", "フローガン", "ペンシルガン", "自動ガン", "定量バルブ", "ディスペンサー", "ダイヤフラムポンプ"]
+    },
+    {
+        "title": "取引先企業",
+        "url": "https://powered.co.jp/company/",
+        "content": "取引先企業として、テルモ、キヤノン化成、ファナック、マクセル、ミネベアミツミ、ヤマハ、リコー、安川電機、富士フイルム、トヨタ自動車、本田技研工業、ブリヂストン、パナソニックなどが掲載されています。",
+        "keywords": ["取引先", "取引先企業", "納入先", "テルモ", "ファナック", "富士フイルム", "トヨタ", "ホンダ", "ブリヂストン", "パナソニック"]
+    },
+    {
+        "title": "お問い合わせ",
+        "url": "https://powered.co.jp/contact/",
+        "content": "製品やサービスに関する相談は、お問い合わせフォームまたは電話で受け付けています。電話番号は03-3493-2037で、受付時間は08:45〜17:30（土・日・祝除く）です。",
+        "keywords": ["お問い合わせ", "問合せ", "連絡", "電話", "電話番号", "受付時間", "営業時間", "フォーム", "相談", "03-3493-2037"]
+    },
+    {
+        "title": "お問い合わせフォーム項目",
+        "url": "https://powered.co.jp/contact/",
+        "content": "お問い合わせフォームでは、会社名、お名前、所属部署、郵便番号、都道府県、市区町村、番地、電話番号、メールアドレス、業種などを入力できます。",
+        "keywords": ["フォーム", "入力項目", "会社名", "お名前", "所属部署", "郵便番号", "都道府県", "電話番号", "メールアドレス", "業種"]
+    },
+    {
+        "title": "所在地",
+        "url": "https://powered.co.jp/company/",
+        "content": "本社は〒141-0031 東京都品川区西五反田3-13-6です。富士テクニカルセンターは〒401-0320 山梨県南都留郡鳴沢村8532-314です。",
+        "keywords": ["所在地", "住所", "本社", "富士テクニカルセンター", "東京", "東京都", "品川区", "西五反田", "山梨県", "鳴沢村"]
+    },
+    {
+        "title": "本社連絡先",
+        "url": "https://powered.co.jp/company/",
+        "content": "本社の電話番号は03-3493-2037、FAXは03-3493-2086です。",
+        "keywords": ["本社", "電話番号", "FAX", "03-3493-2037", "03-3493-2086"]
+    },
+    {
+        "title": "富士テクニカルセンター連絡先",
+        "url": "https://powered.co.jp/company/",
+        "content": "富士テクニカルセンターの電話番号は0555-85-3777、FAXは0555-85-3788です。",
+        "keywords": ["富士テクニカルセンター", "電話番号", "FAX", "0555-85-3777", "0555-85-3788"]
     }
-    out = []
-    seen = set()
-    for term in terms:
-        if term in stop:
-            continue
-        if term not in seen:
-            seen.add(term)
-            out.append(term)
-        if len(out) >= limit:
-            break
-    return out
+]
 
+Path("site-data.js").write_text(
+    "const siteData = " + json.dumps(records, ensure_ascii=False, indent=2) + ";\n",
+    encoding="utf-8"
+)
 
-def title_from_text(page_title: str, heading: str, paragraph: str) -> str:
-    if heading:
-        return normalize_space(heading)[:60]
-    if page_title:
-        return normalize_space(page_title)[:60]
-    return normalize_space(paragraph)[:60]
-
-
-def classify_record(text: str, title: str) -> str:
-    joined = f"{title} {text}"
-    if any(word in joined for word in ["お問い合わせ", "電話", "FAX", "メール", "フォーム"]):
-        return "contact"
-    if any(word in joined for word in ["住所", "所在地", "本社", "センター"]):
-        return "location"
-    if any(word in joined for word in ["ポンプ", "ガン", "バルブ", "フィルタ", "減圧弁"]):
-        return "product"
-    if any(word in joined for word in ["塗布", "充填", "定量吐出", "インキ供給", "システム"]):
-        return "system"
-    if any(word in joined for word in ["会社概要", "事業内容", "強み", "取引先", "設立", "資本金"]):
-        return "company"
-    return "general"
-
-
-def parse_page(url: str, html: str) -> tuple[list[dict], list[str]]:
-    soup = BeautifulSoup(html, "html.parser")
-
-    for tag in soup(["script", "style", "noscript", "svg", "canvas", "iframe", "form"]):
-        tag.decompose()
-
-    page_title = normalize_space(soup.title.get_text(" ", strip=True)) if soup.title else ""
-    main_node = extract_main_node(soup)
-    links = extract_links(soup, url)
-
-    records = []
-    current_heading = page_title
-
-    for node in main_node.find_all(["h1", "h2", "h3", "p", "li"]):
-        text = normalize_space(node.get_text(" ", strip=True))
-        if len(text) < MIN_TEXT_LEN:
-            continue
-
-        if node.name in ["h1", "h2", "h3"]:
-            current_heading = text
-            continue
-
-        title = title_from_text(page_title, current_heading, text)
-        keywords = keyword_candidates(f"{title} {text}")
-        category = classify_record(text, title)
-
-        records.append({
-            "title": title,
-            "url": url,
-            "content": text[:260],
-            "keywords": keywords,
-            "category": category,
-        })
-
-    dedup = []
-    seen = set()
-    for record in records:
-        key = (record["title"], record["content"])
-        if key not in seen:
-            seen.add(key)
-            dedup.append(record)
-
-    return dedup, links
-
-
-def crawl() -> list[dict]:
-    visited = set()
-    queue = deque(SEED_URLS)
-    all_records = []
-
-    session = requests.Session()
-    session.headers.update(HEADERS)
-
-    while queue and len(visited) < MAX_PAGES and len(all_records) < MAX_RECORDS:
-        url = queue.popleft()
-        if url in visited:
-            continue
-        visited.add(url)
-
-        try:
-            resp = session.get(url, timeout=30)
-            resp.raise_for_status()
-            resp.encoding = resp.apparent_encoding or resp.encoding
-        except Exception as e:
-            print(f"Skip {url}: {e}")
-            continue
-
-        records, links = parse_page(url, resp.text)
-        all_records.extend(records)
-
-        for link in links:
-            if link not in visited and link not in queue:
-                queue.append(link)
-
-    final_records = []
-    seen = set()
-    for record in all_records:
-        content_key = normalize_space(record["content"])
-        if content_key in seen:
-            continue
-        seen.add(content_key)
-        final_records.append(record)
-        if len(final_records) >= MAX_RECORDS:
-            break
-
-    return final_records
-
-
-def write_js(records: list[dict]) -> None:
-    content = "const siteData = " + json.dumps(records, ensure_ascii=False, indent=2) + ";\n"
-    OUTPUT.write_text(content, encoding="utf-8")
-
-
-def main() -> None:
-    records = crawl()
-    if not records:
-        raise RuntimeError("No records were generated.")
-    write_js(records)
-    print(f"Generated {len(records)} records to {OUTPUT}")
-
-
-if __name__ == "__main__":
-    main()
+print("site-data.js updated")
