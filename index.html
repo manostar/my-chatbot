@@ -31,8 +31,8 @@ body{
   position:fixed;
   right:20px;
   bottom:90px;
-  width:380px;
-  height:580px;
+  width:390px;
+  height:600px;
   background:white;
   border:1px solid #ccc;
   border-radius:12px;
@@ -166,6 +166,15 @@ body{
   margin-bottom:4px;
 }
 
+.salesBox{
+  margin-top:10px;
+  padding:10px;
+  background:#ecfdf5;
+  border:1px solid #a7f3d0;
+  border-radius:8px;
+  font-size:13px;
+}
+
 a{
   color:#0f766e;
   font-weight:bold;
@@ -218,7 +227,7 @@ a:hover{
     <button id="sendBtn" onclick="ask()">送信</button>
   </div>
 
-  <div class="smallNote">自然文で質問できます。例: シリコーンの充填設備はありますか？ / 本社はどこですか？ / 電話番号を知りたい</div>
+  <div class="smallNote">自然文で質問できます。例: シリコーンの充填設備はありますか？ / 本社はどこですか？ / 接着剤向けポンプは？</div>
 
 </div>
 
@@ -243,7 +252,9 @@ const synonymGroups = [
   ["お問い合わせ", "電話番号", "受付時間", "資料請求", "技術相談"],
   ["所在地", "東京都", "品川区", "西五反田", "山梨県", "鳴沢村"],
   ["取引先", "納入先", "採用実績", "取引先企業"],
-  ["FAX", "ファックス"]
+  ["FAX", "ファックス"],
+  ["見積", "見積もり", "価格", "値段", "費用"],
+  ["おすすめ", "適した", "向いている", "最適"]
 ];
 
 const questionPatterns = [
@@ -380,6 +391,34 @@ function escapeHtml(text){
     .replace(/>/g, "&gt;");
 }
 
+function getSalesSuggestion(question, topItem){
+  const q = question || "";
+  const title = topItem.title || "";
+  const content = topItem.content || "";
+
+  if(q.includes("見積") || q.includes("価格") || q.includes("値段") || q.includes("費用")){
+    return "価格や見積は条件により変わるため、用途・材料・容量・必要圧力を添えてお問い合わせいただくとスムーズです。";
+  }
+
+  if(q.includes("接着剤") || q.includes("グリース") || q.includes("シール剤") || q.includes("放熱コンパウンド")){
+    return "材料名、容器サイズ、必要吐出量が分かると、適したポンプや塗布方式を案内しやすくなります。";
+  }
+
+  if(q.includes("シリコーン") || q.includes("シリコン") || q.includes("LSR") || q.includes("LIM")){
+    return "シリコーン系材料は粘度や2液比率で最適機種が変わるため、材料名や使用条件を添えてお問い合わせいただくのがおすすめです。";
+  }
+
+  if(q.includes("自動化") || q.includes("ロボット") || q.includes("ライン")){
+    return "自動化ライン向けはフルオーダー対応の可能性があります。ワーク、タクト、塗布/充填条件を伝えると具体的に相談しやすいです。";
+  }
+
+  if(title.includes("ポンプ") || content.includes("ポンプ")){
+    return "使用材料、容器サイズ、必要圧力、吐出量が分かると候補を絞り込みやすいです。";
+  }
+
+  return "";
+}
+
 function scoreItem(question, item){
   const q = normalizeJa(question);
   const title = item.title || "";
@@ -458,6 +497,10 @@ function scoreItem(question, item){
     if(title === "会社概要") score -= 20;
   }
 
+  if(question.includes("見積") || question.includes("価格") || question.includes("値段") || question.includes("費用")){
+    if(title === "お問い合わせ") score += 90;
+  }
+
   if(title === "お問い合わせ") score += 2;
   if(title === "所在地") score += 2;
 
@@ -492,6 +535,11 @@ function buildAnswer(question){
   let html = "<span class='resultTitle'>" + escapeHtml(top.title) + "</span>";
   html += escapeHtml(top.content) + "<br><br>";
   html += "<a href='" + top.url + "' target='_blank' rel='noopener noreferrer'>詳しくはこちら</a>";
+
+  const salesSuggestion = getSalesSuggestion(question, top);
+  if(salesSuggestion){
+    html += "<div class='salesBox'>" + escapeHtml(salesSuggestion) + "<br><a href='https://powered.co.jp/contact/' target='_blank' rel='noopener noreferrer'>お問い合わせページへ</a></div>";
+  }
 
   if(results.length > 1){
     html += "<div class='resultSection'>関連情報</div>";
@@ -528,7 +576,7 @@ document.getElementById("questionInput").addEventListener("keydown", function(e)
 });
 
 add(
-  "こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。<br>自然な文章で質問できます。たとえば「シリコーンの充填設備はありますか？」「本社の住所は？」「電話番号を知りたい」などと入力してください。",
+  "こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。<br>自然な文章で質問できます。たとえば「シリコーンの充填設備はありますか？」「本社の住所は？」「接着剤向けポンプは？」などと入力してください。",
   "bot"
 );
 </script>
