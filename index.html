@@ -9,6 +9,7 @@ body{
   font-family:sans-serif;
   background:#f5f7fb;
 }
+
 #chatLauncher{
   position:fixed;
   right:20px;
@@ -23,6 +24,7 @@ body{
   cursor:pointer;
   box-shadow:0 8px 20px rgba(0,0,0,0.15);
 }
+
 #chatWindow{
   position:fixed;
   right:20px;
@@ -37,23 +39,27 @@ body{
   overflow:hidden;
   box-shadow:0 12px 24px rgba(0,0,0,0.12);
 }
+
 #chatHeader{
   background:#0f766e;
   color:white;
   padding:12px;
   font-weight:bold;
 }
+
 #chatSub{
   font-size:12px;
   opacity:0.9;
   margin-top:4px;
 }
+
 #messages{
   flex:1;
   overflow:auto;
   padding:10px;
   background:#f8fafc;
 }
+
 .msg{
   margin:8px 0;
   line-height:1.6;
@@ -62,26 +68,31 @@ body{
   max-width:90%;
   word-break:break-word;
 }
+
 .user{
   margin-left:auto;
   background:#dbeafe;
   color:#0f172a;
 }
+
 .bot{
   background:white;
   border:1px solid #e5e7eb;
   color:#111827;
 }
+
 #quick{
   padding:8px;
   border-top:1px solid #eee;
   background:#fff;
 }
+
 .quickLabel{
   font-size:12px;
   color:#6b7280;
   margin-bottom:6px;
 }
+
 .chip{
   margin:4px 4px 0 0;
   padding:6px 10px;
@@ -91,9 +102,11 @@ body{
   cursor:pointer;
   font-size:12px;
 }
+
 .chip:hover{
   background:#f0fdfa;
 }
+
 #inputArea{
   display:flex;
   border-top:1px solid #ddd;
@@ -101,6 +114,7 @@ body{
   padding:8px;
   gap:8px;
 }
+
 #questionInput{
   flex:1;
   padding:10px 12px;
@@ -108,6 +122,7 @@ body{
   border-radius:10px;
   font-size:14px;
 }
+
 #sendBtn{
   width:70px;
   border:none;
@@ -116,17 +131,20 @@ body{
   cursor:pointer;
   border-radius:10px;
 }
+
 .smallNote{
   padding:0 10px 10px;
   font-size:11px;
   color:#6b7280;
   background:#fff;
 }
+
 a{
   color:#0f766e;
   font-weight:bold;
   text-decoration:none;
 }
+
 a:hover{
   text-decoration:underline;
 }
@@ -176,53 +194,76 @@ const synonymGroups = [
   ["ポンプ", "圧送", "レシプロ", "ドラム", "ペール"],
   ["バルブ", "ガン", "吐出"],
   ["強み", "特長", "特徴", "提案力", "技術力"],
-  ["業界", "用途", "分野", "使われる"]
+  ["業界", "用途", "分野", "使われる"],
+  ["シリコーン", "シリコン", "LSR", "LIM"],
+  ["インキ", "印刷", "輪転機"],
+  ["グリース", "接着剤", "シール剤", "FIPG", "放熱コンパウンド"]
 ];
 
 function toggleChat(){
-  const box=document.getElementById("chatWindow");
-  box.style.display = box.style.display==="flex" ? "none" : "flex";
-  if(box.style.display==="flex"){
+  const box = document.getElementById("chatWindow");
+  box.style.display = box.style.display === "flex" ? "none" : "flex";
+  if(box.style.display === "flex"){
     document.getElementById("questionInput").focus();
   }
 }
 
 function add(text,type){
-  const m=document.getElementById("messages");
-  const div=document.createElement("div");
-  div.className="msg "+type;
-  div.innerHTML=text;
+  const m = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.innerHTML = text;
   m.appendChild(div);
-  m.scrollTop=m.scrollHeight;
+  m.scrollTop = m.scrollHeight;
 }
 
 function normalize(text){
   return (text || "")
     .toLowerCase()
-    .replace(/[\s　]+/g,"")
-    .replace(/[?？!！。、,.]/g,"");
+    .replace(/[\\s　]+/g,"")
+    .replace(/[?？!！。、,.・]/g,"");
 }
 
 function expandQuery(text){
   const query = text.trim();
-  const tokens = new Set(query.split(/[\s　]+/).filter(Boolean));
+  const tokens = new Set(query.split(/[\\s　]+/).filter(Boolean));
 
-  synonymGroups.forEach(group=>{
+  synonymGroups.forEach(group => {
     const hit = group.some(word => query.includes(word));
     if(hit){
       group.forEach(word => tokens.add(word));
     }
   });
 
-  // 文字単位より、2文字以上の部分語も追加
-  for(let i=0;i<query.length;i++){
-    for(let j=i+2;j<=Math.min(query.length, i+6);j++){
-      const part = query.slice(i,j).trim();
-      if(part.length >= 2) tokens.add(part);
+  for(let i = 0; i < query.length; i++){
+    for(let j = i + 2; j <= Math.min(query.length, i + 6); j++){
+      const part = query.slice(i, j).trim();
+      if(part.length >= 2){
+        tokens.add(part);
+      }
     }
   }
 
   return Array.from(tokens);
+}
+
+function similarity(a,b){
+  const aa = normalize(a);
+  const bb = normalize(b);
+  let score = 0;
+
+  if(!aa || !bb){
+    return 0;
+  }
+
+  for(let i = 0; i < aa.length; i++){
+    const part = aa.substring(i, i + 3);
+    if(part.length >= 2 && bb.includes(part)){
+      score += 1;
+    }
+  }
+
+  return score;
 }
 
 function scoreItem(question, item){
@@ -237,7 +278,9 @@ function scoreItem(question, item){
   if(q && title.includes(q)) score += 30;
   if(q && ntext.includes(q)) score += 20;
 
-  tokens.forEach(token=>{
+  score += similarity(question, text);
+
+  tokens.forEach(token => {
     const t = normalize(token);
     if(t.length < 2) return;
 
@@ -245,7 +288,6 @@ function scoreItem(question, item){
     if(ntext.includes(t)) score += 6;
   });
 
-  // 質問パターンによる加点
   if(question.includes("電話") || question.includes("連絡")){
     if(item.title.includes("お問い合わせ")) score += 18;
   }
@@ -266,16 +308,28 @@ function scoreItem(question, item){
     if(item.title.includes("システム")) score += 14;
   }
 
+  if(question.includes("シリコーン") || question.includes("シリコン") || question.includes("LSR") || question.includes("LIM")){
+    if(item.title.includes("充填") || item.title.includes("定量吐出") || item.content.includes("LSR") || item.content.includes("LIM")) score += 18;
+  }
+
+  if(question.includes("インキ")){
+    if(item.title.includes("インキ") || item.content.includes("インキ")) score += 18;
+  }
+
   return score;
 }
 
 function searchBest(question){
-  const results = siteData
-    .map(item => ({ item, score: scoreItem(question, item) }))
+  return siteData
+    .map(item => {
+      return {
+        item: item,
+        score: scoreItem(question, item)
+      };
+    })
     .filter(row => row.score > 0)
-    .sort((a,b) => b.score - a.score);
-
-  return results.slice(0,3);
+    .sort((a,b) => b.score - a.score)
+    .slice(0,3);
 }
 
 function buildAnswer(question){
@@ -292,7 +346,7 @@ function buildAnswer(question){
 
   if(results.length > 1){
     html += "<br><br><span style='font-size:12px;color:#6b7280;'>関連情報</span><br>";
-    for(let i=1;i<results.length;i++){
+    for(let i = 1; i < results.length; i++){
       html += "・<a href='" + results[i].item.url + "' target='_blank' rel='noopener noreferrer'>" + results[i].item.title + "</a><br>";
     }
   }
@@ -301,23 +355,27 @@ function buildAnswer(question){
 }
 
 function ask(){
-  const input=document.getElementById("questionInput");
-  const q=input.value.trim();
-  if(!q)return;
+  const input = document.getElementById("questionInput");
+  const q = input.value.trim();
+
+  if(!q) return;
 
   add(q,"user");
   add(buildAnswer(q),"bot");
-  input.value="";
+
+  input.value = "";
   input.focus();
 }
 
 function quickAsk(text){
-  document.getElementById("questionInput").value=text;
+  document.getElementById("questionInput").value = text;
   ask();
 }
 
-document.getElementById("questionInput").addEventListener("keydown",function(e){
-  if(e.key==="Enter"){ask();}
+document.getElementById("questionInput").addEventListener("keydown", function(e){
+  if(e.key === "Enter"){
+    ask();
+  }
 });
 
 add("こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。自然な文章でも質問できます。たとえば「シリコーンの充填設備はありますか？」のように入力してください。","bot");
@@ -325,4 +383,3 @@ add("こんにちは。日本パワード工業株式会社のホームページ
 
 </body>
 </html>
-
