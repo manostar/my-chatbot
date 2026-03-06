@@ -143,11 +143,4 @@ records = [
         "content": "富士テクニカルセンターの電話番号は0555-85-3777、FAXは0555-85-3788です。",
         "keywords": ["富士テクニカルセンター", "電話番号", "FAX", "0555-85-3777", "0555-85-3788"]
     }
-]
-
-Path("site-data.js").write_text(
-    "const siteData = " + json.dumps(records, ensure_ascii=False, indent=2) + ";\n",
-    encoding="utf-8"
-)
-
-print("site-data.js updated")
+];
