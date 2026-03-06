@@ -1,134 +1,525 @@
-<!DOCTYPE html>
+from pathlib import Path
+
+index_html = r'''<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>Powered お問い合わせチャット</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Powered お問い合わせチャット</title>
+  <style>
+    :root{
+      --primary:#0f766e;
+      --primary-dark:#115e59;
+      --bg:#f5f7fb;
+      --panel:#ffffff;
+      --line:#d7dee8;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --user:#dff4ff;
+      --bot:#ffffff;
+    }
 
-<style>
+    *{box-sizing:border-box}
 
-body{
-font-family:sans-serif;
-margin:0;
-}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
 
-#chatButton{
-position:fixed;
-right:20px;
-bottom:20px;
-width:60px;
-height:60px;
-border-radius:50%;
-background:#0f766e;
-color:white;
-font-size:24px;
-border:none;
-cursor:pointer;
-}
+    #chatLauncher{
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      width:60px;
+      height:60px;
+      border:none;
+      border-radius:50%;
+      background:var(--primary);
+      color:#fff;
+      font-size:26px;
+      cursor:pointer;
+      box-shadow:0 12px 28px rgba(0,0,0,.18);
+      z-index:1000;
+    }
 
-#chatBox{
-position:fixed;
-right:20px;
-bottom:90px;
-width:350px;
-height:500px;
-background:white;
-border:1px solid #ccc;
-display:none;
-flex-direction:column;
-}
+    #chatWindow{
+      position:fixed;
+      right:20px;
+      bottom:92px;
+      width:min(380px, calc(100vw - 24px));
+      height:min(620px, calc(100vh - 120px));
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:0 18px 40px rgba(15,23,42,.18);
+      display:none;
+      flex-direction:column;
+      overflow:hidden;
+      z-index:999;
+    }
 
-#messages{
-flex:1;
-overflow:auto;
-padding:10px;
-}
+    #chatHeader{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:14px 16px;
+      background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+      color:#fff;
+    }
 
-.msg{
-margin-bottom:10px;
-}
+    #chatTitle{
+      font-size:16px;
+      font-weight:700;
+      line-height:1.3;
+    }
 
-#inputArea{
-display:flex;
-gap:5px;
-padding:10px;
-}
+    #chatSub{
+      font-size:12px;
+      opacity:.9;
+      margin-top:2px;
+    }
 
-</style>
+    #closeBtn{
+      border:none;
+      background:rgba(255,255,255,.16);
+      color:#fff;
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      cursor:pointer;
+      font-size:18px;
+    }
 
+    #messages{
+      flex:1;
+      overflow-y:auto;
+      padding:14px;
+      background:linear-gradient(180deg,#f8fafc 0%, #f3f6fb 100%);
+    }
+
+    .msgWrap{
+      display:flex;
+      margin-bottom:12px;
+    }
+
+    .msgWrap.user{
+      justify-content:flex-end;
+    }
+
+    .msg{
+      max-width:86%;
+      padding:11px 13px;
+      border-radius:14px;
+      line-height:1.6;
+      font-size:14px;
+      white-space:pre-wrap;
+      word-break:break-word;
+      box-shadow:0 2px 8px rgba(0,0,0,.04);
+    }
+
+    .msgWrap.bot .msg{
+      background:var(--bot);
+      border:1px solid #e5e7eb;
+      border-bottom-left-radius:6px;
+    }
+
+    .msgWrap.user .msg{
+      background:var(--user);
+      border:1px solid #bfe7ff;
+      border-bottom-right-radius:6px;
+    }
+
+    .msg strong{
+      display:block;
+      margin-bottom:4px;
+    }
+
+    .msg a{
+      color:var(--primary-dark);
+      font-weight:600;
+      text-decoration:none;
+    }
+
+    .msg a:hover{
+      text-decoration:underline;
+    }
+
+    #quickArea{
+      padding:12px 12px 4px;
+      border-top:1px solid #eef2f7;
+      background:#fbfdff;
+    }
+
+    #quickLabel{
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:8px;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .chip{
+      border:1px solid #cbd5e1;
+      background:#fff;
+      color:var(--text);
+      border-radius:999px;
+      padding:7px 11px;
+      font-size:13px;
+      cursor:pointer;
+    }
+
+    .chip:hover{
+      background:#f0fdfa;
+      border-color:#99f6e4;
+    }
+
+    #inputArea{
+      display:flex;
+      gap:8px;
+      padding:12px;
+      border-top:1px solid var(--line);
+      background:#fff;
+    }
+
+    #questionInput{
+      flex:1;
+      border:1px solid #cbd5e1;
+      border-radius:12px;
+      padding:12px 14px;
+      font-size:14px;
+      outline:none;
+    }
+
+    #questionInput:focus{
+      border-color:#7dd3fc;
+      box-shadow:0 0 0 3px rgba(125,211,252,.25);
+    }
+
+    #sendBtn{
+      border:none;
+      background:var(--primary);
+      color:#fff;
+      border-radius:12px;
+      padding:0 16px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    #sendBtn:hover{
+      background:var(--primary-dark);
+    }
+
+    .smallNote{
+      font-size:11px;
+      color:var(--muted);
+      padding:0 12px 12px;
+      background:#fff;
+    }
+
+    @media (max-width: 480px){
+      #chatWindow{
+        right:12px;
+        bottom:84px;
+        width:calc(100vw - 24px);
+        height:calc(100vh - 108px);
+      }
+      #chatLauncher{
+        right:12px;
+        bottom:12px;
+      }
+    }
+  </style>
 </head>
-
 <body>
+  <button id="chatLauncher" aria-label="チャットを開く" onclick="toggleChat()">💬</button>
 
-<button id="chatButton" onclick="toggleChat()">💬</button>
+  <section id="chatWindow" aria-label="お問い合わせチャット">
+    <div id="chatHeader">
+      <div>
+        <div id="chatTitle">お問い合わせチャット</div>
+        <div id="chatSub">ホームページの内容からご案内します</div>
+      </div>
+      <button id="closeBtn" aria-label="閉じる" onclick="toggleChat()">×</button>
+    </div>
 
-<div id="chatBox">
+    <div id="messages"></div>
 
-<div id="messages"></div>
+    <div id="quickArea">
+      <div id="quickLabel">よくある質問</div>
+      <div class="chips">
+        <button class="chip" onclick="quickAsk('会社概要')">会社概要</button>
+        <button class="chip" onclick="quickAsk('取扱製品')">取扱製品</button>
+        <button class="chip" onclick="quickAsk('製品システム')">製品システム</button>
+        <button class="chip" onclick="quickAsk('所在地')">所在地</button>
+        <button class="chip" onclick="quickAsk('お問い合わせ')">お問い合わせ</button>
+      </div>
+    </div>
 
-<div id="inputArea">
-<input id="q" placeholder="質問を入力してください">
-<button onclick="ask()">送信</button>
-</div>
+    <div id="inputArea">
+      <input id="questionInput" type="text" placeholder="ご質問を入力してください" />
+      <button id="sendBtn" onclick="ask()">送信</button>
+    </div>
+    <div class="smallNote">回答できない内容はお問い合わせページをご案内します。</div>
+  </section>
 
-</div>
+  <script src="site-data.js"></script>
+  <script>
+    const synonymMap = {
+      "会社": ["会社", "企業", "メーカー", "概要", "どんな会社", "社名"],
+      "製品": ["製品", "商品", "ラインナップ", "機器", "装置", "ポンプ", "バルブ", "ガン"],
+      "システム": ["システム", "塗布", "充填", "定量吐出", "インキ供給", "設備"],
+      "所在地": ["所在地", "住所", "本社", "どこ", "アクセス", "拠点"],
+      "問い合わせ": ["問い合わせ", "問合せ", "連絡", "電話", "フォーム", "相談"],
+      "営業時間": ["営業時間", "受付時間", "何時", "営業", "電話受付"],
+      "強み": ["強み", "特長", "特徴", "提案力", "技術力"],
+      "業界": ["業界", "用途", "分野", "どんな業界", "使われる"]
+    };
 
-<script src="site-data.js"></script>
+    function toggleChat() {
+      const box = document.getElementById("chatWindow");
+      box.style.display = box.style.display === "flex" ? "none" : "flex";
+      if (box.style.display === "flex") {
+        document.getElementById("questionInput").focus();
+      }
+    }
 
-<script>
+    function addMessage(html, sender) {
+      const messages = document.getElementById("messages");
+      const wrap = document.createElement("div");
+      wrap.className = "msgWrap " + sender;
 
-function toggleChat(){
-let box=document.getElementById("chatBox")
+      const div = document.createElement("div");
+      div.className = "msg";
+      div.innerHTML = html;
 
-if(box.style.display=="flex")
-box.style.display="none"
-else
-box.style.display="flex"
-}
+      wrap.appendChild(div);
+      messages.appendChild(wrap);
+      messages.scrollTop = messages.scrollHeight;
+    }
 
-function add(text){
-let d=document.createElement("div")
-d.className="msg"
-d.innerHTML=text
-messages.appendChild(d)
-}
+    function normalize(text) {
+      return (text || "")
+        .toLowerCase()
+        .replace(/[　\s]+/g, "")
+        .replace(/[？?！!。、,.]/g, "");
+    }
 
-function search(q){
+    function tokenize(question) {
+      const original = question.trim();
+      const baseTokens = original.split(/[ 　]+/).filter(Boolean);
+      const expanded = new Set(baseTokens);
 
-q=q.toLowerCase()
+      Object.entries(synonymMap).forEach(([key, values]) => {
+        if (values.some(v => original.includes(v))) {
+          expanded.add(key);
+          values.forEach(v => expanded.add(v));
+        }
+      });
 
-for(let item of siteData){
+      return Array.from(expanded);
+    }
 
-let text=(item.title+item.content).toLowerCase()
+    function scoreItem(question, item) {
+      const qNorm = normalize(question);
+      const itemText = `${item.title} ${item.content}`;
+      const itemNorm = normalize(itemText);
+      const tokens = tokenize(question);
 
-if(text.includes(q))
-return item
+      let score = 0;
 
-}
+      if (itemNorm.includes(qNorm) && qNorm.length >= 2) score += 12;
+      if (normalize(item.title).includes(qNorm) && qNorm.length >= 2) score += 14;
 
-return null
-}
+      tokens.forEach(token => {
+        const t = normalize(token);
+        if (!t || t.length < 2) return;
 
-function ask(){
+        if (normalize(item.title).includes(t)) score += 7;
+        if (itemNorm.includes(t)) score += 4;
+      });
 
-let q=document.getElementById("q").value
+      const patterns = [
+        { keys: ["電話", "問い合わせ"], title: "お問い合わせ" },
+        { keys: ["受付", "時間"], title: "お問い合わせ" },
+        { keys: ["住所"], title: "所在地" },
+        { keys: ["本社"], title: "所在地" },
+        { keys: ["会社"], title: "会社概要" },
+        { keys: ["製品"], title: "製品ラインナップ" },
+        { keys: ["塗布"], title: "塗布システム" },
+        { keys: ["充填"], title: "充填システム" }
+      ];
 
-add("あなた: "+q)
+      patterns.forEach(rule => {
+        if (rule.keys.every(k => question.includes(k)) && item.title.includes(rule.title)) {
+          score += 10;
+        }
+      });
 
-let r=search(q)
+      return score;
+    }
 
-if(r){
+    function searchAnswers(question, limit = 3) {
+      return siteData
+        .map(item => ({ item, score: scoreItem(question, item) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+    }
 
-add("BOT: <b>"+r.title+"</b><br>"+r.content+"<br><a href='"+r.url+"' target='_blank'>詳しくはこちら</a>")
+    function buildAnswer(question) {
+      const results = searchAnswers(question, 3);
 
-}else{
+      if (!results.length) {
+        return `
+          <strong>該当情報が見つかりませんでした</strong>
+          ホームページ内で一致する情報を見つけられませんでした。<br>
+          <a href="https://powered.co.jp/contact/" target="_blank" rel="noopener noreferrer">お問い合わせページはこちら</a>
+        `;
+      }
 
-add("BOT: 該当情報が見つかりませんでした。<br><a href='https://powered.co.jp/contact/' target='_blank'>お問い合わせはこちら</a>")
+      const top = results[0].item;
+      let html = `
+        <strong>${top.title}</strong>
+        ${top.content}<br><br>
+        <a href="${top.url}" target="_blank" rel="noopener noreferrer">詳しくはこちら</a>
+      `;
 
-}
+      if (results.length > 1) {
+        html += `<br><br><span style="color:#6b7280;font-size:12px;">関連情報</span><br>`;
+        results.slice(1).forEach(({ item }) => {
+          html += `・<a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.title}</a><br>`;
+        });
+      }
 
-}
+      return html;
+    }
 
-</script>
+    function ask() {
+      const input = document.getElementById("questionInput");
+      const question = input.value.trim();
+      if (!question) return;
 
+      addMessage(question, "user");
+
+      const answer = buildAnswer(question);
+      window.setTimeout(() => addMessage(answer, "bot"), 250);
+
+      input.value = "";
+      input.focus();
+    }
+
+    function quickAsk(text) {
+      document.getElementById("questionInput").value = text;
+      ask();
+    }
+
+    document.getElementById("questionInput").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") ask();
+    });
+
+    addMessage(
+      "こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。<br>会社概要、製品、システム、所在地、お問い合わせなどを質問してください。",
+      "bot"
+    );
+  </script>
 </body>
 </html>
+'''
+
+site_data_js = r'''const siteData = [
+  {
+    title: "会社概要",
+    url: "https://powered.co.jp/company/",
+    content: "日本パワード工業株式会社は、高粘度流体の移送・塗布・充填に関する機器やシステムを手がけるメーカーです。代表者は代表取締役社長 髙田芳宏、資本金は35,000,000円、設立は1966年7月です。"
+  },
+  {
+    title: "事業内容",
+    url: "https://powered.co.jp/",
+    content: "日本パワード工業は、高粘度流体の移送・塗布・充填に向けて、ポンプ・ノズルなどの最適なトータルシステムを提案しています。標準品の提供だけでなく、顧客ニーズに合わせたアレンジや自動化ライン向けフルオーダー品の製作にも対応しています。"
+  },
+  {
+    title: "私たちの強み",
+    url: "https://powered.co.jp/",
+    content: "強みは、トータルシステムをアレンジできる提案力、フルオーダー品も製作できる技術力、製品を熟知したエンジニアを育てる育成力、そして先端技術に果敢に挑むチャレンジ精神です。"
+  },
+  {
+    title: "対応業界",
+    url: "https://powered.co.jp/",
+    content: "日本パワード工業の製品は、自動車、医薬品、印刷関係、住宅設備、電子部品、精密機械、文具、光学機器、材料・素材など、さまざまな分野で使用されています。"
+  },
+  {
+    title: "製品システム",
+    url: "https://powered.co.jp/system/",
+    content: "製品システムは、塗布、充填、2液・3液の定量吐出、インキ供給設備に対応しています。高粘度材料の点塗布、線引き塗布、スプレー塗布や、各種充填機、LIM・LSR向け定量機、新聞用輪転機向けインキ供給設備などを提供しています。"
+  },
+  {
+    title: "塗布システム",
+    url: "https://powered.co.jp/system/",
+    content: "塗布システムでは、高粘度材料の点塗布、線引き塗布、スプレー塗布に対応しています。グリス、シール剤、接着剤、FIPG、放熱コンパウンドなどに適したシステムを提案し、ロボットを使った自動塗布にも対応可能です。"
+  },
+  {
+    title: "充填システム",
+    url: "https://powered.co.jp/system/",
+    content: "充填システムでは、シリコーンオイル真空注入機、シリンジ充填機、ペール缶・ドラム缶充填機、ブレーキフルード真空注入システムなどに対応しています。シリコーンオイルの充填では特許技術により、気泡を抑えながら高い充填率を目指した設備を提供しています。"
+  },
+  {
+    title: "2液・3液の定量吐出",
+    url: "https://powered.co.jp/system/",
+    content: "2液・3液の定量吐出では、LIM定量機、LSR定量機、ピグメント用ポンプなどに対応しています。LSR定量機は4,000Pa・sを超える高粘度にも対応し、少量から大容量までオーダーメイドで製作可能です。"
+  },
+  {
+    title: "インキ供給設備",
+    url: "https://powered.co.jp/system/",
+    content: "インキ供給設備では、オフセットインキ供給システム、廃液の真空自動回収装置、純水製造装置を提供しています。新聞用輪転機へのインキ供給や、洗浄廃液の自動回収、逆浸透方式による純水製造に対応しています。"
+  },
+  {
+    title: "製品ラインナップ",
+    url: "https://powered.co.jp/product/",
+    content: "製品ラインナップは、ポンプ、ガン・バルブ、フィルタ・減圧弁です。高粘度材料向けの圧送ポンプ、手動・自動の吐出ガンやバルブなどを展開しています。"
+  },
+  {
+    title: "ミニエックスポンプ",
+    url: "https://powered.co.jp/product/",
+    content: "パワードミニエックスは、世界最小・最軽量クラスのエアー駆動式レシプロポンプです。小型でも高圧圧送が可能で、1kgから18kg缶、カートリッジ、特殊容器にも対応し、グリース、シール剤、接着剤、液状ガスケット、放熱コンパウンドなどに使用できます。"
+  },
+  {
+    title: "ペールポンプ・ドラムポンプ",
+    url: "https://powered.co.jp/product/",
+    content: "ペール缶・ドラム缶用の高圧圧送ポンプを展開しています。材料を最後まで使い切るフラットフォロープレートや、缶交換をしやすくする拡縮ワイパーを採用し、高耐久構造でオーバーホール頻度の低減も図っています。"
+  },
+  {
+    title: "ガン・バルブ",
+    url: "https://powered.co.jp/product/",
+    content: "ガン・バルブ製品には、手作業用のペンシルガン、高耐圧のフローガン、小型自動バルブ、糸引き対策に対応したサックバックガンなどがあります。細部への注入やロボットハンドリングにも対応可能です。"
+  },
+  {
+    title: "営業品目",
+    url: "https://powered.co.jp/company/",
+    content: "営業品目には、ピストンバルブ、パワードフィルター、高圧フィルター、フローガン、ペンシルガン、自動ガン、定量バルブ、各種ディスペンサー、高圧ダイヤフラムポンプ、高粘度材料圧送用ポンプ、高粘度材料供給装置、全自動インキ循環供給装置などがあります。"
+  },
+  {
+    title: "お問い合わせ",
+    url: "https://powered.co.jp/contact/",
+    content: "製品やサービスに関する相談は、お問い合わせフォームまたは電話で受け付けています。電話番号は03-3493-2037で、受付時間は08:45〜17:30（土・日・祝除く）です。お問い合わせフォームでは、技術相談、資料請求、採用に関する問い合わせなどを受け付けています。"
+  },
+  {
+    title: "所在地",
+    url: "https://powered.co.jp/company/",
+    content: "本社は〒141-0031 東京都品川区西五反田3-13-6です。富士テクニカルセンターは〒401-0320 山梨県南都留郡鳴沢村8532-314にあります。"
+  }
+];
+'''
+
+outdir = Path("/mnt/data/powered_chatbot")
+outdir.mkdir(exist_ok=True)
+(outdir / "index.html").write_text(index_html, encoding="utf-8")
+(outdir / "site-data.js").write_text(site_data_js, encoding="utf-8")
+
+print("Created:", outdir / "index.html")
+print("Created:", outdir / "site-data.js")
