@@ -430,26 +430,44 @@ function scoreItem(question, item){
 
   let score = 0;
 
-  if(q && nTitle.includes(q)) score += 80;
-  if(q && nText.includes(q)) score += 35;
+  if(q && nTitle.includes(q)) score += 120;
+  if(q && nText.includes(q)) score += 30;
 
-  score += similarity(question, title) * 3;
+  score += similarity(question, title) * 4;
   score += similarity(question, text);
 
   const titleTokenHits = countTokenHits(tokens, title);
   const contentTokenHits = countTokenHits(tokens, content);
 
-  score += titleTokenHits * 18;
-  score += contentTokenHits * 7;
+  score += titleTokenHits * 24;
+  score += contentTokenHits * 6;
 
   if(Array.isArray(item.keywords)){
     item.keywords.forEach(function(keyword){
       const nk = normalizeJa(keyword);
-      if(question.includes(keyword)) score += 25;
-      if(q.includes(nk)) score += 18;
-      if(nTitle.includes(nk)) score += 20;
-      if(nText.includes(nk)) score += 10;
+      if(question.includes(keyword)) score += 30;
+      if(q.includes(nk)) score += 20;
+      if(nTitle.includes(nk)) score += 24;
+      if(nText.includes(nk)) score += 8;
     });
+  }
+
+  if(item.category){
+    if(item.category === "company" && (question.includes("会社") || question.includes("概要") || question.includes("代表") || question.includes("資本金") || question.includes("設立"))){
+      score += 40;
+    }
+    if(item.category === "product" && (question.includes("製品") || question.includes("ポンプ") || question.includes("ガン") || question.includes("バルブ"))){
+      score += 30;
+    }
+    if(item.category === "system" && (question.includes("塗布") || question.includes("充填") || question.includes("LSR") || question.includes("LIM") || question.includes("インキ"))){
+      score += 30;
+    }
+    if(item.category === "location" && (question.includes("所在地") || question.includes("住所") || question.includes("本社") || question.includes("どこ"))){
+      score += 40;
+    }
+    if(item.category === "contact" && (question.includes("問い合わせ") || question.includes("電話") || question.includes("連絡") || question.includes("受付"))){
+      score += 40;
+    }
   }
 
   questionPatterns.forEach(function(rule){
@@ -465,15 +483,12 @@ function scoreItem(question, item){
     }
   });
 
-  if(question.includes("電話") && content.includes("03-3493-2037")) score += 30;
-  if(question.includes("電話番号") && (content.includes("03-3493-2037") || content.includes("0555-85-3777"))) score += 40;
-  if((question.includes("住所") || question.includes("どこ")) && content.includes("東京都")) score += 30;
-  if((question.includes("シリコーン") || question.includes("シリコン")) && content.includes("シリコーン")) score += 30;
-  if(question.includes("LSR") && (content.includes("LSR") || title.includes("定量吐出"))) score += 35;
-  if(question.includes("LIM") && (content.includes("LIM") || title.includes("定量吐出"))) score += 35;
-  if(question.includes("インキ") && (title.includes("インキ") || content.includes("インキ"))) score += 35;
-  if(question.includes("グリース") && (content.includes("グリス") || content.includes("グリース"))) score += 25;
-  if(question.includes("取引先") && title.includes("取引先")) score += 40;
+  if(question.includes("会社概要") && title === "会社概要") score += 150;
+  if(question.includes("事業内容") && title === "事業内容") score += 120;
+  if(question.includes("強み") && title === "私たちの強み") score += 120;
+  if(question.includes("代表") && title === "会社概要") score += 120;
+  if(question.includes("資本金") && title === "会社概要") score += 120;
+  if(question.includes("設立") && title === "会社概要") score += 120;
 
   if(question.includes("所在地") || question.includes("住所") || question.includes("本社はどこ") || question.includes("どこ")){
     if(title === "所在地") score += 120;
@@ -497,6 +512,15 @@ function scoreItem(question, item){
     if(title === "会社概要") score -= 20;
   }
 
+  if(question.includes("電話") && content.includes("03-3493-2037")) score += 30;
+  if(question.includes("電話番号") && (content.includes("03-3493-2037") || content.includes("0555-85-3777"))) score += 40;
+  if((question.includes("シリコーン") || question.includes("シリコン")) && content.includes("シリコーン")) score += 30;
+  if(question.includes("LSR") && (content.includes("LSR") || title.includes("定量吐出"))) score += 35;
+  if(question.includes("LIM") && (content.includes("LIM") || title.includes("定量吐出"))) score += 35;
+  if(question.includes("インキ") && (title.includes("インキ") || content.includes("インキ"))) score += 35;
+  if(question.includes("グリース") && (content.includes("グリス") || content.includes("グリース"))) score += 25;
+  if(question.includes("取引先") && title.includes("取引先")) score += 40;
+
   if(question.includes("見積") || question.includes("価格") || question.includes("値段") || question.includes("費用")){
     if(title === "お問い合わせ") score += 90;
   }
@@ -506,7 +530,6 @@ function scoreItem(question, item){
 
   return score;
 }
-
 function searchBest(question){
   if(typeof siteData === "undefined"){
     throw new Error("siteData is undefined");
