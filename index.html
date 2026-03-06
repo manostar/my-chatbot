@@ -8,6 +8,7 @@
 body{
   font-family:sans-serif;
   background:#f5f7fb;
+  margin:0;
 }
 
 #chatLauncher{
@@ -23,14 +24,15 @@ body{
   font-size:26px;
   cursor:pointer;
   box-shadow:0 8px 20px rgba(0,0,0,0.15);
+  z-index:1000;
 }
 
 #chatWindow{
   position:fixed;
   right:20px;
   bottom:90px;
-  width:360px;
-  height:540px;
+  width:380px;
+  height:580px;
   background:white;
   border:1px solid #ccc;
   border-radius:12px;
@@ -38,6 +40,7 @@ body{
   flex-direction:column;
   overflow:hidden;
   box-shadow:0 12px 24px rgba(0,0,0,0.12);
+  z-index:999;
 }
 
 #chatHeader{
@@ -51,6 +54,7 @@ body{
   font-size:12px;
   opacity:0.9;
   margin-top:4px;
+  font-weight:normal;
 }
 
 #messages{
@@ -62,11 +66,12 @@ body{
 
 .msg{
   margin:8px 0;
-  line-height:1.6;
-  padding:8px 10px;
+  line-height:1.65;
+  padding:10px 12px;
   border-radius:10px;
-  max-width:90%;
+  max-width:92%;
   word-break:break-word;
+  white-space:normal;
 }
 
 .user{
@@ -121,6 +126,11 @@ body{
   border:1px solid #cbd5e1;
   border-radius:10px;
   font-size:14px;
+  outline:none;
+}
+
+#questionInput:focus{
+  border-color:#0f766e;
 }
 
 #sendBtn{
@@ -132,11 +142,28 @@ body{
   border-radius:10px;
 }
 
+#sendBtn:hover{
+  background:#0b5f58;
+}
+
 .smallNote{
   padding:0 10px 10px;
   font-size:11px;
   color:#6b7280;
   background:#fff;
+}
+
+.resultTitle{
+  font-weight:bold;
+  display:block;
+  margin-bottom:4px;
+}
+
+.resultSection{
+  color:#6b7280;
+  font-size:12px;
+  margin-top:10px;
+  margin-bottom:4px;
 }
 
 a{
@@ -147,6 +174,20 @@ a{
 
 a:hover{
   text-decoration:underline;
+}
+
+@media (max-width: 480px){
+  #chatWindow{
+    right:10px;
+    bottom:82px;
+    width:calc(100vw - 20px);
+    height:calc(100vh - 110px);
+  }
+
+  #chatLauncher{
+    right:10px;
+    bottom:10px;
+  }
 }
 </style>
 </head>
@@ -177,7 +218,7 @@ a:hover{
     <button id="sendBtn" onclick="ask()">送信</button>
   </div>
 
-  <div class="smallNote">自然文でも検索できるようにしてあります。回答できない内容はお問い合わせページをご案内します。</div>
+  <div class="smallNote">自然文で質問できます。例: シリコーンの充填設備はありますか？ / 本社はどこですか？</div>
 
 </div>
 
@@ -185,19 +226,48 @@ a:hover{
 
 <script>
 const synonymGroups = [
-  ["会社", "企業", "メーカー", "社名", "概要", "どんな会社"],
+  ["会社", "企業", "メーカー", "社名", "概要", "どんな会社", "事業内容"],
   ["製品", "商品", "ラインナップ", "機器", "装置"],
   ["システム", "設備", "塗布", "充填", "定量吐出", "供給"],
-  ["所在地", "住所", "本社", "アクセス", "場所", "どこ"],
-  ["問い合わせ", "問合せ", "連絡", "電話", "相談", "フォーム"],
+  ["所在地", "住所", "本社", "アクセス", "場所", "どこ", "拠点"],
+  ["問い合わせ", "問合せ", "連絡", "電話", "相談", "フォーム", "メール"],
   ["受付時間", "営業時間", "何時", "営業", "受付"],
-  ["ポンプ", "圧送", "レシプロ", "ドラム", "ペール"],
-  ["バルブ", "ガン", "吐出"],
+  ["ポンプ", "圧送", "レシプロ", "ドラム", "ペール", "高圧圧送"],
+  ["バルブ", "ガン", "吐出", "ディスペンサー"],
   ["強み", "特長", "特徴", "提案力", "技術力"],
   ["業界", "用途", "分野", "使われる"],
-  ["シリコーン", "シリコン", "LSR", "LIM"],
+  ["シリコーン", "シリコン", "LSR", "LIM", "液状シリコーンゴム"],
   ["インキ", "印刷", "輪転機"],
-  ["グリース", "接着剤", "シール剤", "FIPG", "放熱コンパウンド"]
+  ["グリース", "接着剤", "シール剤", "FIPG", "放熱コンパウンド"],
+  ["会社概要", "代表取締役", "資本金", "設立"],
+  ["お問い合わせ", "電話番号", "受付時間", "資料請求", "技術相談"],
+  ["所在地", "東京都", "品川区", "西五反田", "山梨県", "鳴沢村"],
+  ["取引先", "納入先", "採用実績", "取引先企業"]
+];
+
+const questionPatterns = [
+  { keywords: ["電話"], targets: ["お問い合わせ", "所在地"] },
+  { keywords: ["電話番号"], targets: ["お問い合わせ", "所在地"] },
+  { keywords: ["受付", "時間"], targets: ["お問い合わせ"] },
+  { keywords: ["営業時間"], targets: ["お問い合わせ"] },
+  { keywords: ["住所"], targets: ["所在地"] },
+  { keywords: ["本社"], targets: ["所在地"] },
+  { keywords: ["会社"], targets: ["会社概要", "事業内容", "私たちの強み"] },
+  { keywords: ["どんな", "会社"], targets: ["会社概要", "事業内容"] },
+  { keywords: ["製品"], targets: ["製品ラインナップ", "ミニエックスポンプ", "ペールポンプ・ドラムポンプ", "ガン・バルブ"] },
+  { keywords: ["ポンプ"], targets: ["製品ラインナップ", "ミニエックスポンプ", "ペールポンプ・ドラムポンプ"] },
+  { keywords: ["ガン"], targets: ["ガン・バルブ"] },
+  { keywords: ["バルブ"], targets: ["ガン・バルブ"] },
+  { keywords: ["塗布"], targets: ["塗布システム", "製品システム"] },
+  { keywords: ["充填"], targets: ["充填システム", "製品システム"] },
+  { keywords: ["LSR"], targets: ["2液・3液の定量吐出"] },
+  { keywords: ["LIM"], targets: ["2液・3液の定量吐出"] },
+  { keywords: ["シリコーン"], targets: ["充填システム", "2液・3液の定量吐出"] },
+  { keywords: ["シリコン"], targets: ["充填システム", "2液・3液の定量吐出"] },
+  { keywords: ["インキ"], targets: ["インキ供給設備"] },
+  { keywords: ["取引先"], targets: ["取引先企業"] },
+  { keywords: ["業界"], targets: ["対応業界"] },
+  { keywords: ["強み"], targets: ["私たちの強み"] }
 ];
 
 function toggleChat(){
@@ -221,12 +291,25 @@ function normalize(text){
   return (text || "")
     .toLowerCase()
     .replace(/[\\s　]+/g,"")
-    .replace(/[?？!！。、,.・]/g,"");
+    .replace(/[?？!！。、,.・:：()/]/g,"");
+}
+
+function katakanaToHiragana(str){
+  return str.replace(/[ァ-ヶ]/g, function(ch){
+    return String.fromCharCode(ch.charCodeAt(0) - 0x60);
+  });
+}
+
+function normalizeJa(text){
+  return katakanaToHiragana(normalize(text));
 }
 
 function expandQuery(text){
   const query = text.trim();
-  const tokens = new Set(query.split(/[\\s　]+/).filter(Boolean));
+  const tokens = new Set();
+  const base = query.split(/[\\s　]+/).filter(Boolean);
+
+  base.forEach(t => tokens.add(t));
 
   synonymGroups.forEach(group => {
     const hit = group.some(word => query.includes(word));
@@ -236,7 +319,7 @@ function expandQuery(text){
   });
 
   for(let i = 0; i < query.length; i++){
-    for(let j = i + 2; j <= Math.min(query.length, i + 6); j++){
+    for(let j = i + 2; j <= Math.min(query.length, i + 8); j++){
       const part = query.slice(i, j).trim();
       if(part.length >= 2){
         tokens.add(part);
@@ -248,88 +331,103 @@ function expandQuery(text){
 }
 
 function similarity(a,b){
-  const aa = normalize(a);
-  const bb = normalize(b);
+  const aa = normalizeJa(a);
+  const bb = normalizeJa(b);
   let score = 0;
 
-  if(!aa || !bb){
-    return 0;
-  }
+  if(!aa || !bb) return 0;
 
-  for(let i = 0; i < aa.length; i++){
-    const part = aa.substring(i, i + 3);
-    if(part.length >= 2 && bb.includes(part)){
-      score += 1;
+  for(let n = 2; n <= 4; n++){
+    for(let i = 0; i <= aa.length - n; i++){
+      const part = aa.substring(i, i + n);
+      if(part.length >= 2 && bb.includes(part)){
+        score += n;
+      }
     }
   }
 
   return score;
 }
 
+function countTokenHits(tokens, text){
+  const normalizedText = normalizeJa(text);
+  let hits = 0;
+
+  tokens.forEach(token => {
+    const t = normalizeJa(token);
+    if(t.length >= 2 && normalizedText.includes(t)){
+      hits++;
+    }
+  });
+
+  return hits;
+}
+
 function scoreItem(question, item){
-  const q = normalize(question);
-  const text = item.title + " " + item.content;
-  const ntext = normalize(text);
-  const title = normalize(item.title);
+  const q = normalizeJa(question);
+  const title = item.title || "";
+  const content = item.content || "";
+  const text = title + " " + content;
+  const nTitle = normalizeJa(title);
+  const nText = normalizeJa(text);
   const tokens = expandQuery(question);
 
   let score = 0;
 
-  if(q && title.includes(q)) score += 30;
-  if(q && ntext.includes(q)) score += 20;
+  if(q && nTitle.includes(q)) score += 80;
+  if(q && nText.includes(q)) score += 35;
 
+  score += similarity(question, title) * 3;
   score += similarity(question, text);
 
-  tokens.forEach(token => {
-    const t = normalize(token);
-    if(t.length < 2) return;
+  const titleTokenHits = countTokenHits(tokens, title);
+  const contentTokenHits = countTokenHits(tokens, content);
 
-    if(title.includes(t)) score += 12;
-    if(ntext.includes(t)) score += 6;
+  score += titleTokenHits * 18;
+  score += contentTokenHits * 7;
+
+  questionPatterns.forEach(rule => {
+    const matched = rule.keywords.every(keyword => question.includes(keyword));
+    if(matched){
+      rule.targets.forEach(target => {
+        if(title.includes(target)){
+          score += 40;
+        }
+      });
+    }
   });
 
-  if(question.includes("電話") || question.includes("連絡")){
-    if(item.title.includes("お問い合わせ")) score += 18;
-  }
+  if(question.includes("電話") && content.includes("03-3493-2037")) score += 30;
+  if((question.includes("住所") || question.includes("どこ")) && content.includes("東京都")) score += 30;
+  if((question.includes("シリコーン") || question.includes("シリコン")) && content.includes("シリコーン")) score += 30;
+  if(question.includes("LSR") && (content.includes("LSR") || title.includes("定量吐出"))) score += 35;
+  if(question.includes("LIM") && (content.includes("LIM") || title.includes("定量吐出"))) score += 35;
+  if(question.includes("インキ") && (title.includes("インキ") || content.includes("インキ"))) score += 35;
+  if(question.includes("グリース") && content.includes("グリス")) score += 25;
+  if(question.includes("取引先") && title.includes("取引先")) score += 40;
 
-  if(question.includes("住所") || question.includes("本社") || question.includes("どこ")){
-    if(item.title.includes("所在地")) score += 18;
-  }
-
-  if(question.includes("会社") || question.includes("企業")){
-    if(item.title.includes("会社概要")) score += 18;
-  }
-
-  if(question.includes("製品") || question.includes("商品") || question.includes("ポンプ")){
-    if(item.title.includes("製品") || item.title.includes("ポンプ")) score += 14;
-  }
-
-  if(question.includes("塗布") || question.includes("充填")){
-    if(item.title.includes("システム")) score += 14;
-  }
-
-  if(question.includes("シリコーン") || question.includes("シリコン") || question.includes("LSR") || question.includes("LIM")){
-    if(item.title.includes("充填") || item.title.includes("定量吐出") || item.content.includes("LSR") || item.content.includes("LIM")) score += 18;
-  }
-
-  if(question.includes("インキ")){
-    if(item.title.includes("インキ") || item.content.includes("インキ")) score += 18;
-  }
+  if(title === "お問い合わせ") score += 2;
+  if(title === "所在地") score += 2;
 
   return score;
 }
 
 function searchBest(question){
   return siteData
-    .map(item => {
-      return {
-        item: item,
-        score: scoreItem(question, item)
-      };
-    })
+    .map(item => ({
+      item: item,
+      score: scoreItem(question, item)
+    }))
     .filter(row => row.score > 0)
     .sort((a,b) => b.score - a.score)
-    .slice(0,3);
+    .slice(0, 4);
+}
+
+function escapeHtml(text){
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function buildAnswer(question){
@@ -340,14 +438,14 @@ function buildAnswer(question){
   }
 
   const top = results[0].item;
-  let html = "<strong>" + top.title + "</strong><br>";
-  html += top.content + "<br><br>";
+  let html = "<span class='resultTitle'>" + escapeHtml(top.title) + "</span>";
+  html += escapeHtml(top.content) + "<br><br>";
   html += "<a href='" + top.url + "' target='_blank' rel='noopener noreferrer'>詳しくはこちら</a>";
 
   if(results.length > 1){
-    html += "<br><br><span style='font-size:12px;color:#6b7280;'>関連情報</span><br>";
+    html += "<div class='resultSection'>関連情報</div>";
     for(let i = 1; i < results.length; i++){
-      html += "・<a href='" + results[i].item.url + "' target='_blank' rel='noopener noreferrer'>" + results[i].item.title + "</a><br>";
+      html += "・<a href='" + results[i].item.url + "' target='_blank' rel='noopener noreferrer'>" + escapeHtml(results[i].item.title) + "</a><br>";
     }
   }
 
@@ -360,8 +458,8 @@ function ask(){
 
   if(!q) return;
 
-  add(q,"user");
-  add(buildAnswer(q),"bot");
+  add(escapeHtml(q), "user");
+  add(buildAnswer(q), "bot");
 
   input.value = "";
   input.focus();
@@ -378,7 +476,10 @@ document.getElementById("questionInput").addEventListener("keydown", function(e)
   }
 });
 
-add("こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。自然な文章でも質問できます。たとえば「シリコーンの充填設備はありますか？」のように入力してください。","bot");
+add(
+  "こんにちは。日本パワード工業株式会社のホームページ内容からご案内します。<br>自然な文章で質問できます。たとえば「シリコーンの充填設備はありますか？」「本社の住所は？」「電話番号を知りたい」などと入力してください。",
+  "bot"
+);
 </script>
 
 </body>
